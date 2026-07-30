@@ -121,16 +121,24 @@
   }
   var torchTipMat = new THREE.MeshBasicMaterial({ color: 0xdd1111 });
   var torchTipDimMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+  var torchTipEdgeMat = new THREE.LineBasicMaterial({ color: 0x881111 });
+  var torchTipDimEdgeMat = new THREE.LineBasicMaterial({ color: 0x330808 });
   var torchStickMat = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+  var torchStickEdgeMat = new THREE.LineBasicMaterial({ color: 0x5a2d0d });
   var repeaterGreyMat = new THREE.MeshBasicMaterial({ color: 0x888888, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   var repeaterGreyEdgeMat = new THREE.LineBasicMaterial({ color: 0x666666 });
   var repeaterRedMat = new THREE.MeshBasicMaterial({ color: 0xdd1111 });
   var repeaterRedDimMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+  var repeaterRedEdgeMat = new THREE.LineBasicMaterial({ color: 0x881111 });
+  var repeaterRedDimEdgeMat = new THREE.LineBasicMaterial({ color: 0x330808 });
   var repeaterTickMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
+  var repeaterTickEdgeMat = new THREE.LineBasicMaterial({ color: 0x222222 });
   var pistonBodyMat = new THREE.MeshBasicMaterial({ color: 0x887755, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   var pistonBodyEdgeMat = new THREE.LineBasicMaterial({ color: 0x665533 });
   var pistonHeadMat = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+  var pistonHeadEdgeMat = new THREE.LineBasicMaterial({ color: 0x777777 });
   var pistonArmMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
+  var pistonArmEdgeMat = new THREE.LineBasicMaterial({ color: 0x555555 });
   var dustMats = [];
   for (var dp = 0; dp <= 15; dp++) {
     var r = Math.floor(80 + (dp / 15) * 175);
@@ -246,16 +254,40 @@
   // ===== REDSTONE GEOMETRY BUILDERS =====
   function createTorchMesh(data) {
     var g = new THREE.Group();
-    var stick = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), torchStickMat);
-    var tip = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), data.power > 0 ? torchTipMat : torchTipDimMat);
+    var tipMat = data.power > 0 ? torchTipMat : torchTipDimMat;
+    var tipEdgeM = data.power > 0 ? torchTipEdgeMat : torchTipDimEdgeMat;
+    var stick = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.15), torchStickMat);
+    var stickEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.15, 0.55, 0.15)), torchStickEdgeMat);
+    var tip = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), tipMat);
     tip.userData.isTip = true;
+    var tipEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.28, 0.28, 0.28)), tipEdgeM);
+    tipEdge.userData.isTip = true;
     var face = data.face || 'top';
-    if (face === 'top') { stick.position.y = 0.25; tip.position.y = 0.56; }
-    else if (face === 'north') { stick.rotation.x = Math.PI / 2; stick.position.z = -0.25; tip.rotation.x = Math.PI / 2; tip.position.z = -0.56; }
-    else if (face === 'south') { stick.rotation.x = -Math.PI / 2; stick.position.z = 0.25; tip.rotation.x = -Math.PI / 2; tip.position.z = 0.56; }
-    else if (face === 'east') { stick.rotation.z = -Math.PI / 2; stick.position.x = 0.25; tip.rotation.z = -Math.PI / 2; tip.position.x = 0.56; }
-    else if (face === 'west') { stick.rotation.z = Math.PI / 2; stick.position.x = -0.25; tip.rotation.z = Math.PI / 2; tip.position.x = -0.56; }
-    g.add(stick); g.add(tip);
+    if (face === 'top') {
+      stick.position.y = 0.275; stickEdge.position.y = 0.275;
+      tip.position.y = 0.665; tipEdge.position.y = 0.665;
+    } else if (face === 'north') {
+      stick.rotation.x = Math.PI / 2; stick.position.z = -0.275;
+      stickEdge.rotation.x = Math.PI / 2; stickEdge.position.z = -0.275;
+      tip.rotation.x = Math.PI / 2; tip.position.z = -0.665;
+      tipEdge.rotation.x = Math.PI / 2; tipEdge.position.z = -0.665;
+    } else if (face === 'south') {
+      stick.rotation.x = -Math.PI / 2; stick.position.z = 0.275;
+      stickEdge.rotation.x = -Math.PI / 2; stickEdge.position.z = 0.275;
+      tip.rotation.x = -Math.PI / 2; tip.position.z = 0.665;
+      tipEdge.rotation.x = -Math.PI / 2; tipEdge.position.z = 0.665;
+    } else if (face === 'east') {
+      stick.rotation.z = -Math.PI / 2; stick.position.x = 0.275;
+      stickEdge.rotation.z = -Math.PI / 2; stickEdge.position.x = 0.275;
+      tip.rotation.z = -Math.PI / 2; tip.position.x = 0.665;
+      tipEdge.rotation.z = -Math.PI / 2; tipEdge.position.x = 0.665;
+    } else if (face === 'west') {
+      stick.rotation.z = Math.PI / 2; stick.position.x = -0.275;
+      stickEdge.rotation.z = Math.PI / 2; stickEdge.position.x = -0.275;
+      tip.rotation.z = Math.PI / 2; tip.position.x = -0.665;
+      tipEdge.rotation.z = Math.PI / 2; tipEdge.position.x = -0.665;
+    }
+    g.add(stick); g.add(stickEdge); g.add(tip); g.add(tipEdge);
     return g;
   }
   function getDustConnections(x, y, z) {
@@ -267,24 +299,46 @@
     var g = new THREE.Group();
     var conn = getDustConnections(x, y, z);
     var pw = data.power;
-    // Center dot
-    var center = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.3), dustMats[pw]);
-    center.position.y = 0.46; g.add(center);
-    // Arms
-    for (var d = 0; d < 4; d++) {
-      if (conn & (1 << d)) {
-        var isNS = (d === 1 || d === 3);
-        var arm = new THREE.Mesh(
-          new THREE.BoxGeometry(isNS ? 0.2 : 0.5, 0.08, isNS ? 0.5 : 0.2),
-          dustMats[pw]
-        );
-        arm.position.set(DX[d] * 0.25, 0.46, DZ[d] * 0.25);
-        g.add(arm);
-      }
+    var DH = 0.2, DY = 0.4, DW = 0.22;
+    var mat = dustMats[pw];
+    // Collect connected directions
+    var dirs = [];
+    for (var d = 0; d < 4; d++) { if (conn & (1 << d)) dirs.push(d); }
+    // Check for corner (exactly 2 adjacent, not opposite)
+    var isCorner = false, cd1 = -1, cd2 = -1;
+    if (dirs.length === 2) {
+      if ((dirs[0] + 2) % 4 !== dirs[1]) { isCorner = true; cd1 = dirs[0]; cd2 = dirs[1]; }
     }
-    // Edge lines on center
-    var ce = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.3, 0.08, 0.3)), dustEdgeMat);
-    ce.position.y = 0.46; g.add(ce);
+    // Center dot
+    var cw = dirs.length > 0 ? 0.3 : 0.24;
+    var center = new THREE.Mesh(new THREE.BoxGeometry(cw, DH, cw), mat);
+    center.position.y = DY; g.add(center);
+    var ce = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(cw, DH, cw)), dustEdgeMat);
+    ce.position.y = DY; g.add(ce);
+    // Arms
+    for (var i = 0; i < dirs.length; i++) {
+      var d = dirs[i];
+      var isEW = (d === 0 || d === 2);
+      var armGeo = isEW ? new THREE.BoxGeometry(0.5, DH, DW) : new THREE.BoxGeometry(DW, DH, 0.5);
+      var arm = new THREE.Mesh(armGeo, mat);
+      arm.position.set(DX[d] * 0.25, DY, DZ[d] * 0.25);
+      g.add(arm);
+      var armE = new THREE.LineSegments(new THREE.EdgesGeometry(armGeo), dustEdgeMat);
+      armE.position.copy(arm.position);
+      g.add(armE);
+    }
+    // Corner fill for adjacent connections
+    if (isCorner) {
+      var cx = (DX[cd1] + DX[cd2]) * 0.25;
+      var cz = (DZ[cd1] + DZ[cd2]) * 0.25;
+      var cGeo = new THREE.BoxGeometry(0.28, DH, 0.28);
+      var corner = new THREE.Mesh(cGeo, mat);
+      corner.position.set(cx, DY, cz);
+      g.add(corner);
+      var cornerE = new THREE.LineSegments(new THREE.EdgesGeometry(cGeo), dustEdgeMat);
+      cornerE.position.copy(corner.position);
+      g.add(cornerE);
+    }
     return g;
   }
   function createRepeaterMesh(data) {
@@ -294,23 +348,27 @@
     body.position.y = 0.225; g.add(body);
     var be = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.9, 0.45, 0.5)), repeaterGreyEdgeMat);
     be.position.y = 0.225; g.add(be);
-    // Red line down middle
+    // Red line down middle with edge lines
     var rmat = data.power > 0 ? repeaterRedMat : repeaterRedDimMat;
-    rmat = rmat.clone(); rmat.userData.isPowerIndicator = true;
-    var line = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.47, 0.15), rmat);
+    var redEdgeM = data.power > 0 ? repeaterRedEdgeMat : repeaterRedDimEdgeMat;
+    var lineGeo = new THREE.BoxGeometry(0.1, 0.47, 0.15);
+    var line = new THREE.Mesh(lineGeo, rmat);
     line.position.set(0, 0.235, 0); line.userData.isPowerIndicator = true; g.add(line);
-    // Tick indicator (dark bar showing delay 1-4)
+    var lineE = new THREE.LineSegments(new THREE.EdgesGeometry(lineGeo), redEdgeM);
+    lineE.position.set(0, 0.235, 0); lineE.userData.isPowerIndicator = true; g.add(lineE);
+    // Tick indicator (dark bar showing delay 1-4) with edge lines
     var tickW = 0.15 * data.delay;
-    var tick = new THREE.Mesh(new THREE.BoxGeometry(tickW, 0.47, 0.08), repeaterTickMat);
+    var tickGeo = new THREE.BoxGeometry(tickW, 0.47, 0.08);
+    var tick = new THREE.Mesh(tickGeo, repeaterTickMat);
     tick.position.set(-0.2, 0.235, 0.19); tick.userData.isTick = true; g.add(tick);
-    // Small triangles on front/back to show direction
-    var triSize = 0.12;
-    var triGeo = new THREE.BufferGeometry();
-    var tv = new Float32Array([-triSize, 0, 0, triSize, 0, -triSize, triSize, 0, triSize]);
-    triGeo.setAttribute('position', new THREE.BufferAttribute(tv, 3));
-    triGeo.computeVertexNormals();
-    var tri = new THREE.Mesh(triGeo, rmat); tri.userData.isPowerIndicator = true;
-    tri.position.set(0.45, 0.01, 0); tri.rotation.y = -Math.PI / 2; g.add(tri);
+    var tickE = new THREE.LineSegments(new THREE.EdgesGeometry(tickGeo), repeaterTickEdgeMat);
+    tickE.position.set(-0.2, 0.235, 0.19); tickE.userData.isTick = true; g.add(tickE);
+    // Direction arrow (small box on output side)
+    var arrGeo = new THREE.BoxGeometry(0.08, 0.47, 0.12);
+    var arrow = new THREE.Mesh(arrGeo, rmat);
+    arrow.position.set(0.42, 0.235, 0); arrow.userData.isPowerIndicator = true; g.add(arrow);
+    var arrE = new THREE.LineSegments(new THREE.EdgesGeometry(arrGeo), redEdgeM);
+    arrE.position.set(0.42, 0.235, 0); arrE.userData.isPowerIndicator = true; g.add(arrE);
     // Rotate whole group based on direction
     g.rotation.y = -data.direction * Math.PI / 2;
     return g;
@@ -318,17 +376,24 @@
   function createPistonMesh(data) {
     var g = new THREE.Group();
     // Body
-    var body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), pistonBodyMat);
+    var bodyGeo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+    var body = new THREE.Mesh(bodyGeo, pistonBodyMat);
     body.position.y = 0.425; g.add(body);
-    var be = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.85, 0.85, 0.85)), pistonBodyEdgeMat);
+    var be = new THREE.LineSegments(new THREE.EdgesGeometry(bodyGeo), pistonBodyEdgeMat);
     be.position.y = 0.425; g.add(be);
     // Head (extends when powered)
     var headGroup = new THREE.Group();
     headGroup.userData.isHead = true;
-    var head = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.7), pistonHeadMat);
+    var headGeo = new THREE.BoxGeometry(0.15, 0.7, 0.7);
+    var head = new THREE.Mesh(headGeo, pistonHeadMat);
     head.position.x = 0.5; headGroup.add(head);
-    var arm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), pistonArmMat);
+    var headE = new THREE.LineSegments(new THREE.EdgesGeometry(headGeo), pistonHeadEdgeMat);
+    headE.position.x = 0.5; headGroup.add(headE);
+    var armGeo = new THREE.BoxGeometry(0.3, 0.2, 0.2);
+    var arm = new THREE.Mesh(armGeo, pistonArmMat);
     arm.position.x = 0.35; headGroup.add(arm);
+    var armE = new THREE.LineSegments(new THREE.EdgesGeometry(armGeo), pistonArmEdgeMat);
+    armE.position.x = 0.35; headGroup.add(armE);
     if (data.powered) headGroup.position.x = 1; else headGroup.position.x = 0;
     g.add(headGroup);
     g.rotation.y = -data.direction * Math.PI / 2;
@@ -358,14 +423,15 @@
   function updateRSMesh(x, y, z) {
     var key = bk(x, y, z); var data = redstoneData[key]; if (!data) return;
     var m = redstoneMeshes[key];
-    // Update power-dependent visuals without full rebuild
     if (m) {
       m.traverse(function(c) {
         if (c.userData.isPowerIndicator) {
-          c.material = data.power > 0 ? repeaterRedMat : repeaterRedDimMat;
+          if (c.isLineSegments) c.material = data.power > 0 ? repeaterRedEdgeMat : repeaterRedDimEdgeMat;
+          else c.material = data.power > 0 ? repeaterRedMat : repeaterRedDimMat;
         }
         if (c.userData.isTip) {
-          c.material = data.power > 0 ? torchTipMat : torchTipDimMat;
+          if (c.isLineSegments) c.material = data.power > 0 ? torchTipEdgeMat : torchTipDimEdgeMat;
+          else c.material = data.power > 0 ? torchTipMat : torchTipDimMat;
         }
       });
     }

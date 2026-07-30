@@ -50,6 +50,26 @@
       border-right: 6px solid #000;
       top: 16px; left: 28px;
     }
+    #held {
+      position: fixed; top: calc(50% + 28px); left: 50%; margin-left: -16px;
+      width: 32px; height: 32px; z-index: 6; pointer-events: none;
+      display: none; perspective: 100px;
+    }
+    #held.show { display: block; }
+    #held .h-cube-wrap {
+      width: 32px; height: 32px; position: relative; transform-style: preserve-3d;
+      animation: slowspin 6s linear infinite;
+    }
+    #held .h-face {
+      position: absolute; width: 28px; height: 28px; left: 2px; top: 2px;
+      border: 1px solid #aaa;
+    }
+    #held .h-face.front  { transform: translateZ(14px); }
+    #held .h-face.back   { transform: rotateY(180deg) translateZ(14px); }
+    #held .h-face.left   { transform: rotateY(-90deg) translateZ(14px); }
+    #held .h-face.right  { transform: rotateY(90deg) translateZ(14px); }
+    #held .h-face.top    { transform: rotateX(90deg) translateZ(14px); }
+    #held .h-face.bottom { transform: rotateX(-90deg) translateZ(14px); }
     #hotbar {
       position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
       display: flex; gap: 2px; z-index: 5; pointer-events: none; user-select: none;
@@ -93,7 +113,6 @@
       cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.15s;
     }
     .menu-item:hover { background: rgba(255,255,255,0.15); }
-    .menu-item.active { background: rgba(255,255,255,0.25); outline: 2px solid #fff; }
     .menu-cube-wrap {
       width: 52px; height: 52px; position: relative; transform-style: preserve-3d;
       animation: slowspin 6s linear infinite;
@@ -122,6 +141,16 @@
     <div class="tri left"></div>
     <div class="tri right"></div>
   </div>
+  <div id="held">
+    <div class="h-cube-wrap">
+      <div class="h-face front"></div>
+      <div class="h-face back"></div>
+      <div class="h-face left"></div>
+      <div class="h-face right"></div>
+      <div class="h-face top"></div>
+      <div class="h-face bottom"></div>
+    </div>
+  </div>
   <div id="hotbar"></div>
   <div id="blockmenu"></div>
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
@@ -139,7 +168,6 @@
     var TERRAIN_DEPTH = 6;
     var SURFACE_Y = TERRAIN_DEPTH - 1;
 
-    // Terrain layer colors
     var LAYER_COLORS = {
       0: { fill: 0x666666, edge: 0x444444 },
       1: { fill: 0xbbbbbb, edge: 0x999999 },
@@ -149,7 +177,6 @@
       5: { fill: 0x556b2f, edge: 0x3d4f22 },
     };
 
-    // Placeable block types
     var BLOCK_TYPES = {
       'default':  { fill: 0xffffff, edge: 0xbbbbbb, cssFill: '#ffffff', cssEdge: '#aaa',    label: 'Default' },
       'grass':    { fill: 0x556b2f, edge: 0x3d4f22, cssFill: '#556b2f', cssEdge: '#3d4f22', label: 'Grass' },
@@ -158,7 +185,6 @@
       'bedrock':  { fill: 0x666666, edge: 0x444444, cssFill: '#666666', cssEdge: '#444',    label: 'Bedrock' },
     };
     var BLOCK_TYPE_LIST = ['default', 'grass', 'dirt', 'stone', 'bedrock'];
-    var selectedBlockType = 'default';
 
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -168,14 +194,12 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    // Terrain layer materials
     var layerFillMaterials = {};
     var layerEdgeMaterials = {};
     for (var ly = 0; ly < TERRAIN_DEPTH; ly++) {
       layerFillMaterials[ly] = new THREE.MeshBasicMaterial({ color: LAYER_COLORS[ly].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
       layerEdgeMaterials[ly] = new THREE.LineBasicMaterial({ color: LAYER_COLORS[ly].edge });
     }
-    // Block type materials for placed blocks
     var blockTypeFillMaterials = {};
     var blockTypeEdgeMaterials = {};
     for (var bt = 0; bt < BLOCK_TYPE_LIST.length; bt++) {
@@ -187,21 +211,18 @@
     var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
     var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
 
-    // Highlight wireframe
     var highlightMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
     var highlightMesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), highlightMat);
     highlightMesh.visible = false;
     scene.add(highlightMesh);
 
-    // Raycaster
     var raycaster = new THREE.Raycaster();
     raycaster.far = REACH;
     var screenCenter = new THREE.Vector2(0, 0);
     var targetBlock = null;
     var targetNormal = null;
 
-    // Block world data
-    var worldBlocks = {};   // key -> { terrain: true, layer: N } or { placed: true, type: 'grass' }
+    var worldBlocks = {};
     var chunkBlockSet = {};
     var chunks = {};
     var cloudChunks = {};
@@ -244,8 +265,6 @@
       if (!blockSet) return;
       var blockKeys = Object.keys(blockSet);
       if (blockKeys.length === 0) return;
-
-      // Bucket by visual material
       var buckets = {};
       for (var i = 0; i < blockKeys.length; i++) {
         var p = blockKeys[i].split(',');
@@ -255,11 +274,9 @@
         if (!buckets[bk2]) buckets[bk2] = [];
         buckets[bk2].push([bx, by, bz]);
       }
-
       var allMeshes = [];
       var allPositions = [];
       var instanceOffset = 0;
-
       var bKeys = Object.keys(buckets).sort();
       for (var bi = 0; bi < bKeys.length; bi++) {
         var bkey = bKeys[bi];
@@ -298,7 +315,6 @@
     function destroyBlock(x, y, z) {
       var key = bk(x, y, z);
       if (!worldBlocks[key]) return;
-      // Only natural bedrock (layer 0 terrain) is unbreakable
       if (worldBlocks[key].terrain && worldBlocks[key].layer === 0) return;
       delete worldBlocks[key];
       var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
@@ -309,8 +325,10 @@
     function placeBlock(x, y, z) {
       var key = bk(x, y, z);
       if (worldBlocks[key]) return;
+      var activeType = hotbarSlots[selectedSlot];
+      if (!activeType) return;
       if (Math.abs(x - playerPos.x) < 0.8 && Math.abs(z - playerPos.z) < 0.8 && y - 0.5 < playerPos.y + 0.2 && y + 0.5 > playerPos.y - PLAYER_HEIGHT) return;
-      worldBlocks[key] = { placed: true, type: selectedBlockType };
+      worldBlocks[key] = { placed: true, type: activeType };
       var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
       if (!chunkBlockSet[ck]) chunkBlockSet[ck] = {};
       chunkBlockSet[ck][key] = true;
@@ -393,11 +411,10 @@
       delete cloudChunks[key];
     }
 
-    // --- Collision (full 1.0x1.0x1.0 block hitboxes) ---
+    // --- Collision ---
     var PLAYER_HALF_W = 0.3;
     var PLAYER_EYE_TO_FEET = PLAYER_HEIGHT;
     var PLAYER_EYE_TO_HEAD = 0.1;
-
     function collidesAt(px, py, pz) {
       var minX = Math.floor(px - PLAYER_HALF_W + 0.5);
       var maxX = Math.floor(px + PLAYER_HALF_W + 0.5);
@@ -411,7 +428,6 @@
         for (var bz = minZ; bz <= maxZ; bz++) {
           for (var by = minY; by <= maxY; by++) {
             if (worldBlocks[bk(bx, by, bz)]) {
-              // Block occupies [bx-0.5, bx+0.5] x [by-0.5, by+0.5] x [bz-0.5, bz+0.5]
               if (px + PLAYER_HALF_W > bx - 0.5 && px - PLAYER_HALF_W < bx + 0.5 &&
                   headY > by - 0.5 && feetY < by + 0.5 &&
                   pz + PLAYER_HALF_W > bz - 0.5 && pz - PLAYER_HALF_W < bz + 0.5) {
@@ -423,8 +439,6 @@
       }
       return false;
     }
-
-    // Find the highest solid block top below a given Y
     function findGroundBelow(px, py, pz) {
       var by = Math.floor(py - PLAYER_EYE_TO_FEET + 0.5);
       for (; by >= -10; by--) {
@@ -435,21 +449,17 @@
       return py;
     }
 
-    // Controls
-    var keys = {};
-    var pitch = 0, yaw = 0, locked = false;
-    var menuOpen = false;
-    var playerPos = new THREE.Vector3(0, SURFACE_Y + PLAYER_HEIGHT, 0);
-    var velocity = new THREE.Vector3(0, 0, 0);
-    var onGround = true;
-    var overlay = document.getElementById('overlay');
-
-    // Build hotbar
-    var hotbarEl = document.getElementById('hotbar');
+    // --- Hotbar system ---
+    // Slots 0-4 = the 5 block types, slots 5-9 = empty
+    var hotbarSlots = BLOCK_TYPE_LIST.slice(); // ['default','grass','dirt','stone','bedrock']
+    hotbarSlots.push(null, null, null, null, null); // 5 empty slots
     var selectedSlot = 0;
-    var HOTBAR_SLOTS = 10;
+    var heldBlock = null; // block type name or null
+
+    var hotbarEl = document.getElementById('hotbar');
     var slotCubeEls = [];
-    for (var s = 0; s < HOTBAR_SLOTS; s++) {
+    var slotCubeWraps = [];
+    for (var s = 0; s < 10; s++) {
       var slot = document.createElement('div');
       slot.className = 'hotbar-slot' + (s === 0 ? ' selected' : '');
       var cubeWrap = document.createElement('div');
@@ -463,6 +473,7 @@
         faceEls.push(face);
       }
       slot.appendChild(cubeWrap);
+      slotCubeWraps.push(cubeWrap);
       slotCubeEls.push(faceEls);
       var keyLabel = document.createElement('span');
       keyLabel.className = 'slot-key';
@@ -470,32 +481,49 @@
       slot.appendChild(keyLabel);
       hotbarEl.appendChild(slot);
     }
-    function selectSlot(idx) {
-      selectedSlot = idx;
+
+    function updateHotbar() {
       var slots = hotbarEl.children;
-      for (var i = 0; i < slots.length; i++) {
-        slots[i].classList.toggle('selected', i === idx);
-      }
-    }
-    function updateHotbarColors() {
-      var bt = BLOCK_TYPES[selectedBlockType];
-      for (var s = 0; s < slotCubeEls.length; s++) {
-        for (var f = 0; f < slotCubeEls[s].length; f++) {
-          slotCubeEls[s][f].style.background = bt.cssFill;
-          slotCubeEls[s][f].style.borderColor = bt.cssEdge;
+      for (var i = 0; i < 10; i++) {
+        slots[i].classList.toggle('selected', i === selectedSlot);
+        var type = hotbarSlots[i];
+        if (type && BLOCK_TYPES[type]) {
+          slotCubeWraps[i].style.display = '';
+          var bt = BLOCK_TYPES[type];
+          for (var f = 0; f < 6; f++) {
+            slotCubeEls[i][f].style.background = bt.cssFill;
+            slotCubeEls[i][f].style.borderColor = bt.cssEdge;
+          }
+        } else {
+          slotCubeWraps[i].style.display = 'none';
         }
       }
     }
-    updateHotbarColors();
+    updateHotbar();
+
+    // Held block indicator
+    var heldEl = document.getElementById('held');
+    var heldFaces = heldEl.querySelectorAll('.h-face');
+    function updateHeld() {
+      if (heldBlock && BLOCK_TYPES[heldBlock]) {
+        heldEl.classList.add('show');
+        var bt = BLOCK_TYPES[heldBlock];
+        for (var f = 0; f < heldFaces.length; f++) {
+          heldFaces[f].style.background = bt.cssFill;
+          heldFaces[f].style.borderColor = bt.cssEdge;
+        }
+      } else {
+        heldEl.classList.remove('show');
+      }
+    }
 
     // Build block menu
     var menuEl = document.getElementById('blockmenu');
-    var menuItemEls = {};
     for (var mi = 0; mi < BLOCK_TYPE_LIST.length; mi++) {
-      var bname = BLOCK_TYPE_LIST[mi];
-      var btInfo = BLOCK_TYPES[bname];
+      var mbname = BLOCK_TYPE_LIST[mi];
+      var btInfo = BLOCK_TYPES[mbname];
       var item = document.createElement('div');
-      item.className = 'menu-item' + (bname === selectedBlockType ? ' active' : '');
+      item.className = 'menu-item';
       var mcWrap = document.createElement('div');
       mcWrap.className = 'menu-cube-wrap';
       var mFaces = ['front','back','left','right','top','bottom'];
@@ -511,18 +539,25 @@
       label.className = 'menu-label';
       label.textContent = btInfo.label;
       item.appendChild(label);
-      (function(typeName, el) {
-        el.addEventListener('click', function() {
-          selectedBlockType = typeName;
-          for (var k in menuItemEls) menuItemEls[k].classList.remove('active');
-          el.classList.add('active');
-          updateHotbarColors();
+      (function(typeName) {
+        item.addEventListener('click', function() {
+          heldBlock = typeName;
+          updateHeld();
           closeMenu();
         });
-      })(bname, item);
-      menuItemEls[bname] = item;
+      })(mbname);
       menuEl.appendChild(item);
     }
+
+    // Controls
+    var keys = {};
+    var pitch = 0, yaw = 0, locked = false;
+    var menuOpen = false;
+    var playerPos = new THREE.Vector3(0, SURFACE_Y + PLAYER_HEIGHT, 0);
+    var velocity = new THREE.Vector3(0, 0, 0);
+    var onGround = true;
+    var overlay = document.getElementById('overlay');
+
     function openMenu() {
       menuOpen = true;
       menuEl.classList.add('open');
@@ -532,7 +567,9 @@
     function closeMenu() {
       menuOpen = false;
       menuEl.classList.remove('open');
-      overlay.classList.remove('hidden');
+      overlay.classList.add('hidden');
+      // Auto re-lock
+      setTimeout(function() { renderer.domElement.requestPointerLock(); }, 50);
     }
 
     renderer.domElement.addEventListener('click', function() {
@@ -555,20 +592,34 @@
       if (e.code === 'Space') e.preventDefault();
       if (e.code === 'KeyE') {
         e.preventDefault();
-        if (menuOpen) closeMenu(); else openMenu();
+        if (menuOpen) { closeMenu(); } else { openMenu(); }
         return;
       }
-      if (locked && !menuOpen) {
-        if (e.code === 'Digit1') selectSlot(0);
-        else if (e.code === 'Digit2') selectSlot(1);
-        else if (e.code === 'Digit3') selectSlot(2);
-        else if (e.code === 'Digit4') selectSlot(3);
-        else if (e.code === 'Digit5') selectSlot(4);
-        else if (e.code === 'Digit6') selectSlot(5);
-        else if (e.code === 'Digit7') selectSlot(6);
-        else if (e.code === 'Digit8') selectSlot(7);
-        else if (e.code === 'Digit9') selectSlot(8);
-        else if (e.code === 'Digit0') selectSlot(9);
+      // Number keys
+      var slotIdx = -1;
+      if (e.code === 'Digit1') slotIdx = 0;
+      else if (e.code === 'Digit2') slotIdx = 1;
+      else if (e.code === 'Digit3') slotIdx = 2;
+      else if (e.code === 'Digit4') slotIdx = 3;
+      else if (e.code === 'Digit5') slotIdx = 4;
+      else if (e.code === 'Digit6') slotIdx = 5;
+      else if (e.code === 'Digit7') slotIdx = 6;
+      else if (e.code === 'Digit8') slotIdx = 7;
+      else if (e.code === 'Digit9') slotIdx = 8;
+      else if (e.code === 'Digit0') slotIdx = 9;
+      if (slotIdx >= 0) {
+        if (heldBlock) {
+          // Place held block into this slot
+          hotbarSlots[slotIdx] = heldBlock;
+          heldBlock = null;
+          selectedSlot = slotIdx;
+          updateHotbar();
+          updateHeld();
+        } else {
+          // Just select the slot
+          selectedSlot = slotIdx;
+          updateHotbar();
+        }
       }
     });
     document.addEventListener('keyup', function(e) { keys[e.code] = false; });
@@ -641,7 +692,6 @@
     }
 
     var lastTime = performance.now();
-
     function animate() {
       requestAnimationFrame(animate);
       if (menuOpen) { renderer.render(scene, camera); return; }
@@ -649,19 +699,14 @@
       var dt = (now - lastTime) / 1000;
       if (dt > 0.1) dt = 0.1;
       lastTime = now;
-
       var forward = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), 0, -Math.cos(yaw) * Math.cos(pitch)).normalize();
       var right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
-
       var moveDir = new THREE.Vector3();
       if (keys['KeyW']) moveDir.add(forward);
       if (keys['KeyS']) moveDir.sub(forward);
       if (keys['KeyA']) moveDir.sub(right);
       if (keys['KeyD']) moveDir.add(right);
-
       if (keys['ShiftLeft'] || keys['ShiftRight']) { MOVE_SPEED = BASE_SPEED / 0.6; } else { MOVE_SPEED = BASE_SPEED; }
-
-      // Horizontal movement with collision - step in small increments to prevent tunneling
       if (moveDir.lengthSq() > 0) {
         moveDir.normalize();
         var totalDx = moveDir.x * MOVE_SPEED * dt;
@@ -671,20 +716,12 @@
         var stepDz = totalDz / steps;
         for (var si = 0; si < steps; si++) {
           var moved = false;
-          if (!collidesAt(playerPos.x + stepDx, playerPos.y, playerPos.z)) {
-            playerPos.x += stepDx; moved = true;
-          }
-          if (!collidesAt(playerPos.x, playerPos.y, playerPos.z + stepDz)) {
-            playerPos.z += stepDz; moved = true;
-          }
+          if (!collidesAt(playerPos.x + stepDx, playerPos.y, playerPos.z)) { playerPos.x += stepDx; moved = true; }
+          if (!collidesAt(playerPos.x, playerPos.y, playerPos.z + stepDz)) { playerPos.z += stepDz; moved = true; }
           if (!moved) break;
         }
       }
-
-      // Jump
       if (keys['Space'] && onGround) { velocity.y = JUMP_FORCE; onGround = false; }
-
-      // Gravity with sub-step collision
       velocity.y -= GRAVITY * dt;
       var totalDy = velocity.y * dt;
       var vSteps = Math.max(1, Math.ceil(Math.abs(totalDy) / 0.4));
@@ -693,7 +730,6 @@
         var testY = playerPos.y + stepDy;
         if (collidesAt(playerPos.x, testY, playerPos.z)) {
           if (velocity.y <= 0) {
-            // Falling: snap to top of block
             var feetY = testY - PLAYER_EYE_TO_FEET;
             var blockTopY = Math.floor(feetY + 0.5) + 0.5;
             playerPos.y = blockTopY + PLAYER_EYE_TO_FEET;
@@ -705,23 +741,15 @@
         playerPos.y = testY;
         onGround = false;
       }
-
-      // Safety: if somehow below world, snap up
-      if (playerPos.y < -5) {
-        playerPos.y = findGroundBelow(playerPos.x, playerPos.y, playerPos.z);
-        velocity.y = 0;
-      }
-
+      if (playerPos.y < -5) { playerPos.y = findGroundBelow(playerPos.x, playerPos.y, playerPos.z); velocity.y = 0; }
       camera.position.copy(playerPos);
       camera.rotation.order = 'YXZ';
       camera.rotation.y = yaw;
       camera.rotation.x = pitch;
-
       updateChunks();
       updateTarget();
       renderer.render(scene, camera);
     }
-
     animate();
   })();
   </script>

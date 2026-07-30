@@ -36,7 +36,7 @@ let onGround = true;
 
 const overlay = document.getElementById('overlay');
 
-renderer.domElement.addEventListener('click', () => {
+overlay.addEventListener('click', () => {
   renderer.domElement.requestPointerLock();
 });
 

@@ -17,10 +17,50 @@
       pointer-events: none;
     }
     #overlay.hidden { display: none; }
+    #crosshair {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5; pointer-events: none;
+    }
+    #crosshair .dot {
+      width: 6px; height: 6px; background: #000; border-radius: 50%;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #crosshair .tri {
+      position: absolute; width: 0; height: 0;
+    }
+    #crosshair .tri.top {
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-bottom: 6px solid #000;
+      bottom: calc(50% + 6px); left: 50%; transform: translateX(-50%);
+    }
+    #crosshair .tri.bottom {
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 6px solid #000;
+      top: calc(50% + 6px); left: 50%; transform: translateX(-50%);
+    }
+    #crosshair .tri.left {
+      border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+      border-right: 6px solid #000;
+      right: calc(50% + 6px); top: 50%; transform: translateY(-50%);
+    }
+    #crosshair .tri.right {
+      border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+      border-left: 6px solid #000;
+      left: calc(50% + 6px); top: 50%; transform: translateY(-50%);
+    }
   </style>
 </head>
 <body>
   <div id="overlay">Click to play</div>
+  <div id="crosshair">
+    <div class="dot"></div>
+    <div class="tri top"></div>
+    <div class="tri bottom"></div>
+    <div class="tri left"></div>
+    <div class="tri right"></div>
+  </div>
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script>
   (function() {

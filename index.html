@@ -48,8 +48,9 @@
 
     var chunks = {};
     var cloudChunks = {};
-    var CLOUD_HEIGHT = 30;
-    var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+    var CLOUD_HEIGHT = 50;
+    var CLOUD_SPACING = 6;
+    var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
 
     function hash(x, z) {
       var n = x * 374761393 + z * 668265263;
@@ -136,16 +137,26 @@
       var key = 'c' + chunkKey(cx, cz);
       if (cloudChunks[key]) return;
       var positions = [];
-      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
-        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
-          var wx = cx * CHUNK_SIZE + lx;
-          var wz = cz * CHUNK_SIZE + lz;
+      var startWX = cx * CHUNK_SIZE;
+      var startWZ = cz * CHUNK_SIZE;
+      for (var gx = 0; gx < CHUNK_SIZE; gx += CLOUD_SPACING) {
+        for (var gz = 0; gz < CHUNK_SIZE; gz += CLOUD_SPACING) {
+          var wx = startWX + gx;
+          var wz = startWZ + gz;
           var h = hash(wx, wz);
-          if (h > 0.55) {
-            positions.push(wx, CLOUD_HEIGHT, wz);
-            if (h > 0.75) positions.push(wx, CLOUD_HEIGHT + 1, wz);
-            if (h > 0.88) positions.push(wx, CLOUD_HEIGHT, wz + 1);
-            if (h > 0.82 && h < 0.88) positions.push(wx + 1, CLOUD_HEIGHT, wz);
+          if (h > 0.4) {
+            var size = 2 + Math.floor(hash(wx + 100, wz + 100) * 4);
+            var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 3);
+            for (var dx = 0; dx < size; dx++) {
+              for (var dz = 0; dz < size; dz++) {
+                if (hash(wx + dx * 7, wz + dz * 13) > 0.35) {
+                  positions.push(wx + dx, cy, wz + dz);
+                  if (hash(wx + dx * 11, wz + dz * 17) > 0.6) {
+                    positions.push(wx + dx, cy + 1, wz + dz);
+                  }
+                }
+              }
+            }
           }
         }
       }

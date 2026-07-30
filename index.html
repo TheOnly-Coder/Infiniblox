@@ -5,51 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Infiniblox</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-    }
-    canvas {
-      display: block;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    canvas { display: block; }
     #overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-family: sans-serif;
-      font-size: 24px;
-      z-index: 10;
-      user-select: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.5); color: #fff;
+      font-family: sans-serif; font-size: 24px;
+      z-index: 10; user-select: none;
       pointer-events: none;
     }
-    #overlay.hidden {
-      display: none;
-    }
+    #overlay.hidden { display: none; }
   </style>
 </head>
 <body>
   <div id="overlay">Click to play</div>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+  (function() {
+    var CHUNK_SIZE = 16;
+    var RENDER_DISTANCE = 64;
+    var PLAYER_HEIGHT = 1.6;
+    var MOVE_SPEED = 6;
+    var JUMP_FORCE = 7;
+    var GRAVITY = 20;
+    var MOUSE_SENSITIVITY = 0.002;
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    var edgeMaterial = new THREE.LineBasicMaterial({ color: 0xbbbbbb });
+    var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+    var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
+
+    var chunks = {};
+    var keys = {};
+    var pitch = 0, yaw = 0, locked = false;
+    var playerPos = new THREE.Vector3(0, PLAYER_HEIGHT, 0);
+    var velocity = new THREE.Vector3(0, 0, 0);
+    var onGround = true;
+    var overlay = document.getElementById('overlay');
+
+    // Pointer lock on canvas click
+    renderer.domElement.addEventListener('click', function() {
+      renderer.domElement.requestPointerLock();
+    });
+
+    document.addEventListener('pointerlockchange', function() {
+      locked = (document.pointerLockElement === renderer.domElement);
+      if (locked) {
+        overlay.classList.add('hidden');
+      } else {
+        overlay.classList.remove('hidden');
+      }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!locked) return;
+      yaw -= e.movementX * MOUSE_SENSITIVITY;
+      pitch -= e.movementY * MOUSE_SENSITIVITY;
+      if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
+      if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
+    });
+
+    document.addEventListener('keydown', function(e) {
+      keys[e.code] = true;
+      if (e.code === 'Space') e.preventDefault();
+    });
+    document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function chunkKey(cx, cz) { return cx + ',' + cz; }
+
+    function createChunk(cx, cz) {
+      var key = chunkKey(cx, cz);
+      if (chunks[key]) return;
+      var count = CHUNK_SIZE * CHUNK_SIZE;
+      var cubeMesh = new THREE.InstancedMesh(blockGeometry, cubeMaterial, count);
+      var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMaterial, count);
+      var mat = new THREE.Matrix4();
+      var i = 0;
+      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
+        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
+          mat.setPosition(cx * CHUNK_SIZE + lx, 0, cz * CHUNK_SIZE + lz);
+          cubeMesh.setMatrixAt(i, mat);
+          edgeMesh.setMatrixAt(i, mat);
+          i++;
+        }
+      }
+      cubeMesh.instanceMatrix.needsUpdate = true;
+      edgeMesh.instanceMatrix.needsUpdate = true;
+      scene.add(cubeMesh);
+      scene.add(edgeMesh);
+      chunks[key] = { cubeMesh: cubeMesh, edgeMesh: edgeMesh };
+    }
+
+    function removeChunk(key) {
+      var chunk = chunks[key];
+      if (!chunk) return;
+      scene.remove(chunk.cubeMesh);
+      scene.remove(chunk.edgeMesh);
+      chunk.cubeMesh.dispose();
+      chunk.edgeMesh.dispose();
+      delete chunks[key];
+    }
+
+    function updateChunks() {
+      var pcx = Math.floor(playerPos.x / CHUNK_SIZE);
+      var pcz = Math.floor(playerPos.z / CHUNK_SIZE);
+      var chunkRadius = Math.ceil(RENDER_DISTANCE / CHUNK_SIZE);
+      var needed = {};
+      for (var dx = -chunkRadius; dx <= chunkRadius; dx++) {
+        for (var dz = -chunkRadius; dz <= chunkRadius; dz++) {
+          var cx = pcx + dx, cz = pcz + dz;
+          var worldCX = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
+          var worldCZ = cz * CHUNK_SIZE + CHUNK_SIZE / 2;
+          var dist = Math.sqrt((worldCX - playerPos.x) * (worldCX - playerPos.x) + (worldCZ - playerPos.z) * (worldCZ - playerPos.z));
+          if (dist <= RENDER_DISTANCE) {
+            var key = chunkKey(cx, cz);
+            needed[key] = true;
+            if (!chunks[key]) createChunk(cx, cz);
+          }
+        }
+      }
+      for (var key in chunks) {
+        if (!needed[key]) removeChunk(key);
       }
     }
+
+    var lastTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      var now = performance.now();
+      var dt = (now - lastTime) / 1000;
+      if (dt > 0.1) dt = 0.1;
+      lastTime = now;
+
+      var forward = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), 0, -Math.cos(yaw) * Math.cos(pitch)).normalize();
+      var right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
+
+      var moveDir = new THREE.Vector3();
+      if (keys['KeyW']) moveDir.add(forward);
+      if (keys['KeyS']) moveDir.sub(forward);
+      if (keys['KeyA']) moveDir.sub(right);
+      if (keys['KeyD']) moveDir.add(right);
+
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize();
+        playerPos.x += moveDir.x * MOVE_SPEED * dt;
+        playerPos.z += moveDir.z * MOVE_SPEED * dt;
+      }
+
+      if (keys['Space'] && onGround) {
+        velocity.y = JUMP_FORCE;
+        onGround = false;
+      }
+      velocity.y -= GRAVITY * dt;
+      playerPos.y += velocity.y * dt;
+
+      if (playerPos.y <= PLAYER_HEIGHT) {
+        playerPos.y = PLAYER_HEIGHT;
+        velocity.y = 0;
+        onGround = true;
+      }
+
+      camera.position.copy(playerPos);
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+
+      updateChunks();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  })();
   </script>
-  <script type="module" src="game.js"></script>
 </body>
 </html>

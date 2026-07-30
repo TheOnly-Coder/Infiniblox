@@ -47,6 +47,15 @@
     var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
 
     var chunks = {};
+    var cloudChunks = {};
+    var CLOUD_HEIGHT = 30;
+    var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+
+    function hash(x, z) {
+      var n = x * 374761393 + z * 668265263;
+      n = (n ^ (n >> 13)) * 1274126177;
+      return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
+    }
     var keys = {};
     var pitch = 0, yaw = 0, locked = false;
     var playerPos = new THREE.Vector3(0, PLAYER_HEIGHT, 0);
@@ -123,6 +132,44 @@
       delete chunks[key];
     }
 
+    function createCloudChunk(cx, cz) {
+      var key = 'c' + chunkKey(cx, cz);
+      if (cloudChunks[key]) return;
+      var positions = [];
+      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
+        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
+          var wx = cx * CHUNK_SIZE + lx;
+          var wz = cz * CHUNK_SIZE + lz;
+          var h = hash(wx, wz);
+          if (h > 0.55) {
+            positions.push(wx, CLOUD_HEIGHT, wz);
+            if (h > 0.75) positions.push(wx, CLOUD_HEIGHT + 1, wz);
+            if (h > 0.88) positions.push(wx, CLOUD_HEIGHT, wz + 1);
+            if (h > 0.82 && h < 0.88) positions.push(wx + 1, CLOUD_HEIGHT, wz);
+          }
+        }
+      }
+      if (positions.length === 0) { cloudChunks[key] = null; return; }
+      var count = positions.length / 3;
+      var mesh = new THREE.InstancedMesh(blockGeometry, cloudMaterial, count);
+      var mat = new THREE.Matrix4();
+      for (var i = 0; i < count; i++) {
+        mat.setPosition(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+        mesh.setMatrixAt(i, mat);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      scene.add(mesh);
+      cloudChunks[key] = { mesh: mesh };
+    }
+
+    function removeCloudChunk(key) {
+      var chunk = cloudChunks[key];
+      if (!chunk) return;
+      scene.remove(chunk.mesh);
+      chunk.mesh.dispose();
+      delete cloudChunks[key];
+    }
+
     function updateChunks() {
       var pcx = Math.floor(playerPos.x / CHUNK_SIZE);
       var pcz = Math.floor(playerPos.z / CHUNK_SIZE);
@@ -138,11 +185,16 @@
             var key = chunkKey(cx, cz);
             needed[key] = true;
             if (!chunks[key]) createChunk(cx, cz);
+            if (!cloudChunks['c' + key]) createCloudChunk(cx, cz);
           }
         }
       }
       for (var key in chunks) {
         if (!needed[key]) removeChunk(key);
+      }
+      for (var key in cloudChunks) {
+        var gk = key.substring(1);
+        if (!needed[gk]) removeCloudChunk(key);
       }
     }
 

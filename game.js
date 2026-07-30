@@ -37,15 +37,14 @@ let onGround = true;
 const overlay = document.getElementById('overlay');
 
 overlay.addEventListener('click', () => {
-  renderer.domElement.requestPointerLock();
+  overlay.style.display = 'none';
+  document.body.requestPointerLock();
 });
 
 document.addEventListener('pointerlockchange', () => {
-  locked = document.pointerLockElement === renderer.domElement;
-  if (locked) {
-    overlay.classList.add('hidden');
-  } else {
-    overlay.classList.remove('hidden');
+  locked = !!document.pointerLockElement;
+  if (!locked) {
+    overlay.style.display = 'flex';
   }
 });
 

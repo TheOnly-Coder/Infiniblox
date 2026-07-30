@@ -76,14 +76,14 @@
     var TERRAIN_DEPTH = 6; // layers 0-5, surface at y=5
     var SURFACE_Y = TERRAIN_DEPTH - 1; // y=5
 
-    // Layer config: y=0 (bottom, darkest/unbreakable) -> y=5 (surface, white)
+    // Layer config: y=0 (bottom, darkest/unbreakable) -> y=5 (surface, grass on top)
     var LAYER_COLORS = {
       0: { fill: 0x666666, edge: 0x444444 }, // dark grey - unbreakable bedrock
-      1: { fill: 0x556b2f, edge: 0x3d4f22 }, // green
-      2: { fill: 0x8b6914, edge: 0x6b5010 }, // brown dark
-      3: { fill: 0xa0782c, edge: 0x7a5c20 }, // brown light
-      4: { fill: 0xbbbbbb, edge: 0x999999 }, // lighter grey
-      5: { fill: 0xdddddd, edge: 0xaaaaaa }, // lightest grey (not quite white)
+      1: { fill: 0xbbbbbb, edge: 0x999999 }, // light grey stone
+      2: { fill: 0xcccccc, edge: 0xaaaaaa }, // lighter grey stone
+      3: { fill: 0x8b6914, edge: 0x6b5010 }, // brown dirt
+      4: { fill: 0xa0782c, edge: 0x7a5c20 }, // lighter brown dirt
+      5: { fill: 0x556b2f, edge: 0x3d4f22 }, // green grass (surface)
     };
     var PLACED_FILL = 0xffffff;
     var PLACED_EDGE = 0xbbbbbb;

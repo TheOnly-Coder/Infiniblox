@@ -72,6 +72,7 @@
     var JUMP_FORCE = 7;
     var GRAVITY = 20;
     var MOUSE_SENSITIVITY = 0.002;
+    var REACH = 7;
 
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -86,8 +87,112 @@
     var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
     var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
 
+    // Highlight wireframe for targeted block
+    var highlightMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+    var highlightMesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), highlightMat);
+    highlightMesh.visible = false;
+    scene.add(highlightMesh);
+
+    // Raycaster
+    var raycaster = new THREE.Raycaster();
+    raycaster.far = REACH;
+    var screenCenter = new THREE.Vector2(0, 0);
+    var targetBlock = null;
+    var targetNormal = null;
+
+    // Block world data
+    var worldBlocks = {};
+    var chunkBlockSet = {};
     var chunks = {};
     var cloudChunks = {};
+
+    function bk(x, y, z) { return x + ',' + y + ',' + z; }
+    function chunkKey(cx, cz) { return cx + ',' + cz; }
+
+    function ensureChunkData(cx, cz) {
+      var ck = chunkKey(cx, cz);
+      if (chunkBlockSet[ck]) return;
+      chunkBlockSet[ck] = {};
+      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
+        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
+          var wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
+          var key = bk(wx, 0, wz);
+          worldBlocks[key] = true;
+          chunkBlockSet[ck][key] = true;
+        }
+      }
+    }
+
+    function rebuildChunkMesh(cx, cz) {
+      var ck = chunkKey(cx, cz);
+      if (chunks[ck]) {
+        scene.remove(chunks[ck].cubeMesh);
+        scene.remove(chunks[ck].edgeMesh);
+        chunks[ck].cubeMesh.dispose();
+        chunks[ck].edgeMesh.dispose();
+        delete chunks[ck];
+      }
+      var blockSet = chunkBlockSet[ck];
+      if (!blockSet) return;
+      var blockKeys = Object.keys(blockSet);
+      if (blockKeys.length === 0) return;
+      var cubeMesh = new THREE.InstancedMesh(blockGeometry, cubeMaterial, blockKeys.length);
+      var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMaterial, blockKeys.length);
+      var positions = [];
+      var mat = new THREE.Matrix4();
+      for (var i = 0; i < blockKeys.length; i++) {
+        var p = blockKeys[i].split(',');
+        var bx = parseInt(p[0]), by = parseInt(p[1]), bz = parseInt(p[2]);
+        positions.push([bx, by, bz]);
+        mat.setPosition(bx, by, bz);
+        cubeMesh.setMatrixAt(i, mat);
+        edgeMesh.setMatrixAt(i, mat);
+      }
+      cubeMesh.instanceMatrix.needsUpdate = true;
+      edgeMesh.instanceMatrix.needsUpdate = true;
+      cubeMesh.userData.chunkKey = ck;
+      scene.add(cubeMesh);
+      scene.add(edgeMesh);
+      chunks[ck] = { cubeMesh: cubeMesh, edgeMesh: edgeMesh, positions: positions };
+    }
+
+    function destroyBlock(x, y, z) {
+      var key = bk(x, y, z);
+      if (!worldBlocks[key]) return;
+      delete worldBlocks[key];
+      var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+      if (chunkBlockSet[ck]) delete chunkBlockSet[ck][key];
+      rebuildChunkMesh(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    }
+
+    function placeBlock(x, y, z) {
+      var key = bk(x, y, z);
+      if (worldBlocks[key]) return;
+      if (Math.abs(x - playerPos.x) < 0.8 && Math.abs(z - playerPos.z) < 0.8 && y - 0.5 < playerPos.y + 0.2 && y + 0.5 > playerPos.y - PLAYER_HEIGHT) return;
+      worldBlocks[key] = true;
+      var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+      if (!chunkBlockSet[ck]) chunkBlockSet[ck] = {};
+      chunkBlockSet[ck][key] = true;
+      rebuildChunkMesh(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    }
+
+    function createChunk(cx, cz) {
+      var ck = chunkKey(cx, cz);
+      if (chunks[ck]) return;
+      ensureChunkData(cx, cz);
+      rebuildChunkMesh(cx, cz);
+    }
+
+    function removeChunk(key) {
+      if (!chunks[key]) return;
+      scene.remove(chunks[key].cubeMesh);
+      scene.remove(chunks[key].edgeMesh);
+      chunks[key].cubeMesh.dispose();
+      chunks[key].edgeMesh.dispose();
+      delete chunks[key];
+    }
+
+    // Clouds
     var CLOUD_HEIGHT = 50;
     var CLOUD_SPACING = 8;
     var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
@@ -110,92 +215,15 @@
       n = (n ^ (n >> 13)) * 1274126177;
       return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
     }
-    var keys = {};
-    var pitch = 0, yaw = 0, locked = false;
-    var playerPos = new THREE.Vector3(0, PLAYER_HEIGHT, 0);
-    var velocity = new THREE.Vector3(0, 0, 0);
-    var onGround = true;
-    var overlay = document.getElementById('overlay');
-
-    // Pointer lock on canvas click
-    renderer.domElement.addEventListener('click', function() {
-      renderer.domElement.requestPointerLock();
-    });
-
-    document.addEventListener('pointerlockchange', function() {
-      locked = (document.pointerLockElement === renderer.domElement);
-      if (locked) {
-        overlay.classList.add('hidden');
-      } else {
-        overlay.classList.remove('hidden');
-      }
-    });
-
-    document.addEventListener('mousemove', function(e) {
-      if (!locked) return;
-      yaw -= e.movementX * MOUSE_SENSITIVITY;
-      pitch -= e.movementY * MOUSE_SENSITIVITY;
-      if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
-      if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
-    });
-
-    document.addEventListener('keydown', function(e) {
-      keys[e.code] = true;
-      if (e.code === 'Space') e.preventDefault();
-    });
-    document.addEventListener('keyup', function(e) { keys[e.code] = false; });
-
-    window.addEventListener('resize', function() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    function chunkKey(cx, cz) { return cx + ',' + cz; }
-
-    function createChunk(cx, cz) {
-      var key = chunkKey(cx, cz);
-      if (chunks[key]) return;
-      var count = CHUNK_SIZE * CHUNK_SIZE;
-      var cubeMesh = new THREE.InstancedMesh(blockGeometry, cubeMaterial, count);
-      var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMaterial, count);
-      var mat = new THREE.Matrix4();
-      var i = 0;
-      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
-        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
-          mat.setPosition(cx * CHUNK_SIZE + lx, 0, cz * CHUNK_SIZE + lz);
-          cubeMesh.setMatrixAt(i, mat);
-          edgeMesh.setMatrixAt(i, mat);
-          i++;
-        }
-      }
-      cubeMesh.instanceMatrix.needsUpdate = true;
-      edgeMesh.instanceMatrix.needsUpdate = true;
-      scene.add(cubeMesh);
-      scene.add(edgeMesh);
-      chunks[key] = { cubeMesh: cubeMesh, edgeMesh: edgeMesh };
-    }
-
-    function removeChunk(key) {
-      var chunk = chunks[key];
-      if (!chunk) return;
-      scene.remove(chunk.cubeMesh);
-      scene.remove(chunk.edgeMesh);
-      chunk.cubeMesh.dispose();
-      chunk.edgeMesh.dispose();
-      delete chunks[key];
-    }
 
     function createCloudChunk(cx, cz) {
       var key = 'c' + chunkKey(cx, cz);
       if (cloudChunks[key]) return;
       var positions = [];
-      var startWX = cx * CHUNK_SIZE;
-      var startWZ = cz * CHUNK_SIZE;
+      var startWX = cx * CHUNK_SIZE, startWZ = cz * CHUNK_SIZE;
       for (var gx = 0; gx < CHUNK_SIZE; gx += CLOUD_SPACING) {
         for (var gz = 0; gz < CHUNK_SIZE; gz += CLOUD_SPACING) {
-          var wx = startWX + gx;
-          var wz = startWZ + gz;
+          var wx = startWX + gx, wz = startWZ + gz;
           if (hash(wx, wz) > 0.35) {
             var formation = CLOUD_FORMATIONS[Math.floor(hash(wx + 500, wz + 500) * CLOUD_FORMATIONS.length)];
             var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 5);
@@ -226,6 +254,59 @@
       delete cloudChunks[key];
     }
 
+    // Controls
+    var keys = {};
+    var pitch = 0, yaw = 0, locked = false;
+    var playerPos = new THREE.Vector3(0, PLAYER_HEIGHT, 0);
+    var velocity = new THREE.Vector3(0, 0, 0);
+    var onGround = true;
+    var overlay = document.getElementById('overlay');
+
+    renderer.domElement.addEventListener('click', function() {
+      renderer.domElement.requestPointerLock();
+    });
+
+    document.addEventListener('pointerlockchange', function() {
+      locked = (document.pointerLockElement === renderer.domElement);
+      if (locked) overlay.classList.add('hidden');
+      else overlay.classList.remove('hidden');
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!locked) return;
+      yaw -= e.movementX * MOUSE_SENSITIVITY;
+      pitch -= e.movementY * MOUSE_SENSITIVITY;
+      if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
+      if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
+    });
+
+    document.addEventListener('keydown', function(e) {
+      keys[e.code] = true;
+      if (e.code === 'Space') e.preventDefault();
+    });
+    document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+    document.addEventListener('mousedown', function(e) {
+      if (!locked || !targetBlock) return;
+      if (e.button === 0) {
+        destroyBlock(targetBlock.x, targetBlock.y, targetBlock.z);
+      } else if (e.button === 2 && targetNormal) {
+        var nx = 0, ny = 0, nz = 0;
+        if (Math.abs(targetNormal.x) > 0.5) nx = Math.sign(targetNormal.x);
+        if (Math.abs(targetNormal.y) > 0.5) ny = Math.sign(targetNormal.y);
+        if (Math.abs(targetNormal.z) > 0.5) nz = Math.sign(targetNormal.z);
+        placeBlock(targetBlock.x + nx, targetBlock.y + ny, targetBlock.z + nz);
+      }
+    });
+
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
     function updateChunks() {
       var pcx = Math.floor(playerPos.x / CHUNK_SIZE);
       var pcz = Math.floor(playerPos.z / CHUNK_SIZE);
@@ -245,12 +326,27 @@
           }
         }
       }
-      for (var key in chunks) {
-        if (!needed[key]) removeChunk(key);
-      }
-      for (var key in cloudChunks) {
-        var gk = key.substring(1);
-        if (!needed[gk]) removeCloudChunk(key);
+      for (var key in chunks) { if (!needed[key]) removeChunk(key); }
+      for (var key in cloudChunks) { if (!needed[key.substring(1)]) removeCloudChunk(key); }
+    }
+
+    function updateTarget() {
+      raycaster.setFromCamera(screenCenter, camera);
+      var meshes = [];
+      for (var key in chunks) meshes.push(chunks[key].cubeMesh);
+      var hits = raycaster.intersectObjects(meshes);
+      if (hits.length > 0) {
+        var hit = hits[0];
+        var ck = hit.object.userData.chunkKey;
+        var pos = chunks[ck].positions[hit.instanceId];
+        targetBlock = { x: pos[0], y: pos[1], z: pos[2] };
+        targetNormal = hit.face.normal;
+        highlightMesh.position.set(pos[0], pos[1], pos[2]);
+        highlightMesh.visible = true;
+      } else {
+        targetBlock = null;
+        targetNormal = null;
+        highlightMesh.visible = false;
       }
     }
 
@@ -280,18 +376,10 @@
         playerPos.z += moveDir.z * MOVE_SPEED * dt;
       }
 
-      if (keys['Space'] && onGround) {
-        velocity.y = JUMP_FORCE;
-        onGround = false;
-      }
+      if (keys['Space'] && onGround) { velocity.y = JUMP_FORCE; onGround = false; }
       velocity.y -= GRAVITY * dt;
       playerPos.y += velocity.y * dt;
-
-      if (playerPos.y <= PLAYER_HEIGHT) {
-        playerPos.y = PLAYER_HEIGHT;
-        velocity.y = 0;
-        onGround = true;
-      }
+      if (playerPos.y <= PLAYER_HEIGHT) { playerPos.y = PLAYER_HEIGHT; velocity.y = 0; onGround = true; }
 
       camera.position.copy(playerPos);
       camera.rotation.order = 'YXZ';
@@ -299,6 +387,7 @@
       camera.rotation.x = pitch;
 
       updateChunks();
+      updateTarget();
       renderer.render(scene, camera);
     }
 

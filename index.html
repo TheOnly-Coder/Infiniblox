@@ -13,745 +13,820 @@
       display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,0.5); color: #fff;
       font-family: sans-serif; font-size: 24px;
-      z-index: 10; user-select: none;
-      pointer-events: none;
+      z-index: 10; user-select: none; pointer-events: none;
     }
     #overlay.hidden { display: none; }
-    #crosshair {
-      position: fixed; top: 50%; left: 50%;
-      width: 40px; height: 40px;
-      margin-left: -20px; margin-top: -20px;
-      z-index: 5; pointer-events: none;
-    }
-    #crosshair .dot {
-      width: 6px; height: 6px; background: #000; border-radius: 50%;
-      position: absolute; top: 17px; left: 17px;
-    }
-    #crosshair .tri {
-      position: absolute; width: 0; height: 0;
-    }
-    #crosshair .tri.top {
-      border-left: 4px solid transparent; border-right: 4px solid transparent;
-      border-top: 6px solid #000;
-      top: 6px; left: 16px;
-    }
-    #crosshair .tri.bottom {
-      border-left: 4px solid transparent; border-right: 4px solid transparent;
-      border-bottom: 6px solid #000;
-      top: 28px; left: 16px;
-    }
-    #crosshair .tri.left {
-      border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-      border-left: 6px solid #000;
-      top: 16px; left: 6px;
-    }
-    #crosshair .tri.right {
-      border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-      border-right: 6px solid #000;
-      top: 16px; left: 28px;
-    }
-    #held {
-      position: fixed; top: calc(50% + 28px); left: 50%; margin-left: -16px;
-      width: 32px; height: 32px; z-index: 6; pointer-events: none;
-      display: none; perspective: 100px;
-    }
+    #crosshair { position: fixed; top: 50%; left: 50%; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px; z-index: 5; pointer-events: none; }
+    #crosshair .dot { width: 6px; height: 6px; background: #000; border-radius: 50%; position: absolute; top: 17px; left: 17px; }
+    #crosshair .tri { position: absolute; width: 0; height: 0; }
+    #crosshair .tri.top { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #000; top: 6px; left: 16px; }
+    #crosshair .tri.bottom { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid #000; top: 28px; left: 16px; }
+    #crosshair .tri.left { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 6px solid #000; top: 16px; left: 6px; }
+    #crosshair .tri.right { border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-right: 6px solid #000; top: 16px; left: 28px; }
+    #held { position: fixed; top: calc(50% + 28px); left: 50%; margin-left: -16px; width: 32px; height: 32px; z-index: 6; pointer-events: none; display: none; perspective: 100px; }
     #held.show { display: block; }
-    #held .h-cube-wrap {
-      width: 32px; height: 32px; position: relative; transform-style: preserve-3d;
-      animation: slowspin 6s linear infinite;
-    }
-    #held .h-face {
-      position: absolute; width: 28px; height: 28px; left: 2px; top: 2px;
-      border: 1px solid #aaa;
-    }
+    #held .h-cube-wrap { width: 32px; height: 32px; position: relative; transform-style: preserve-3d; animation: slowspin 6s linear infinite; }
+    #held .h-face { position: absolute; width: 28px; height: 28px; left: 2px; top: 2px; border: 1px solid #aaa; }
     #held .h-face.front  { transform: translateZ(14px); }
     #held .h-face.back   { transform: rotateY(180deg) translateZ(14px); }
     #held .h-face.left   { transform: rotateY(-90deg) translateZ(14px); }
     #held .h-face.right  { transform: rotateY(90deg) translateZ(14px); }
     #held .h-face.top    { transform: rotateX(90deg) translateZ(14px); }
     #held .h-face.bottom { transform: rotateX(-90deg) translateZ(14px); }
-    #hotbar {
-      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 2px; z-index: 5; pointer-events: none; user-select: none;
-    }
-    .hotbar-slot {
-      width: 48px; height: 48px; border: 2px solid rgba(0,0,0,0.35);
-      background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center;
-      perspective: 100px; position: relative;
-    }
+    #hotbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; z-index: 5; pointer-events: none; user-select: none; }
+    .hotbar-slot { width: 48px; height: 48px; border: 2px solid rgba(0,0,0,0.35); background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; perspective: 100px; position: relative; }
     .hotbar-slot.selected { border-color: #fff; background: rgba(255,255,255,0.18); }
-    .hotbar-slot .slot-key {
-      position: absolute; bottom: 1px; right: 3px; font-size: 9px; color: rgba(255,255,255,0.5); font-family: sans-serif;
-    }
-    .slot-cube-wrap {
-      width: 32px; height: 32px; position: relative; transform-style: preserve-3d;
-      animation: slowspin 6s linear infinite;
-    }
-    @keyframes slowspin {
-      from { transform: rotateX(-25deg) rotateY(0deg); }
-      to   { transform: rotateX(-25deg) rotateY(360deg); }
-    }
-    .slot-cube-face {
-      position: absolute; width: 28px; height: 28px; left: 2px; top: 2px;
-      border: 1px solid #aaa; background: #fff;
-    }
+    .hotbar-slot .slot-key { position: absolute; bottom: 1px; right: 3px; font-size: 9px; color: rgba(255,255,255,0.5); font-family: sans-serif; }
+    .slot-cube-wrap { width: 32px; height: 32px; position: relative; transform-style: preserve-3d; animation: slowspin 6s linear infinite; }
+    @keyframes slowspin { from { transform: rotateX(-25deg) rotateY(0deg); } to { transform: rotateX(-25deg) rotateY(360deg); } }
+    .slot-cube-face { position: absolute; width: 28px; height: 28px; left: 2px; top: 2px; border: 1px solid #aaa; background: #fff; }
     .slot-cube-face.front  { transform: translateZ(14px); }
     .slot-cube-face.back   { transform: rotateY(180deg) translateZ(14px); }
     .slot-cube-face.left   { transform: rotateY(-90deg) translateZ(14px); }
     .slot-cube-face.right  { transform: rotateY(90deg) translateZ(14px); }
     .slot-cube-face.top    { transform: rotateX(90deg) translateZ(14px); }
     .slot-cube-face.bottom { transform: rotateX(-90deg) translateZ(14px); }
-    #blockmenu {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: none; gap: 16px; z-index: 20; user-select: none;
-      background: rgba(0,0,0,0.6); padding: 20px 24px; border-radius: 8px;
-      border: 2px solid rgba(255,255,255,0.2);
-    }
+    #blockmenu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; gap: 12px; z-index: 20; user-select: none; background: rgba(0,0,0,0.6); padding: 16px 20px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2); flex-wrap: wrap; max-width: 500px; justify-content: center; }
     #blockmenu.open { display: flex; }
-    .menu-item {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      cursor: pointer; padding: 8px; border-radius: 6px; transition: background 0.15s;
-    }
+    .menu-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 6px; border-radius: 6px; transition: background 0.15s; }
     .menu-item:hover { background: rgba(255,255,255,0.15); }
-    .menu-cube-wrap {
-      width: 52px; height: 52px; position: relative; transform-style: preserve-3d;
-      animation: slowspin 6s linear infinite;
-    }
-    .menu-cube-face {
-      position: absolute; width: 46px; height: 46px; left: 3px; top: 3px;
-      border: 1.5px solid rgba(0,0,0,0.25);
-    }
-    .menu-cube-face.front  { transform: translateZ(23px); }
-    .menu-cube-face.back   { transform: rotateY(180deg) translateZ(23px); }
-    .menu-cube-face.left   { transform: rotateY(-90deg) translateZ(23px); }
-    .menu-cube-face.right  { transform: rotateY(90deg) translateZ(23px); }
-    .menu-cube-face.top    { transform: rotateX(90deg) translateZ(23px); }
-    .menu-cube-face.bottom { transform: rotateX(-90deg) translateZ(23px); }
-    .menu-label {
-      color: #fff; font-family: sans-serif; font-size: 11px; text-align: center;
-    }
+    .menu-cube-wrap { width: 44px; height: 44px; position: relative; transform-style: preserve-3d; animation: slowspin 6s linear infinite; }
+    .menu-cube-face { position: absolute; width: 38px; height: 38px; left: 3px; top: 3px; border: 1.5px solid rgba(0,0,0,0.25); }
+    .menu-cube-face.front  { transform: translateZ(19px); }
+    .menu-cube-face.back   { transform: rotateY(180deg) translateZ(19px); }
+    .menu-cube-face.left   { transform: rotateY(-90deg) translateZ(19px); }
+    .menu-cube-face.right  { transform: rotateY(90deg) translateZ(19px); }
+    .menu-cube-face.top    { transform: rotateX(90deg) translateZ(19px); }
+    .menu-cube-face.bottom { transform: rotateX(-90deg) translateZ(19px); }
+    .menu-label { color: #fff; font-family: sans-serif; font-size: 10px; text-align: center; }
   </style>
 </head>
 <body>
   <div id="overlay">Click to play</div>
-  <div id="crosshair">
-    <div class="dot"></div>
-    <div class="tri top"></div>
-    <div class="tri bottom"></div>
-    <div class="tri left"></div>
-    <div class="tri right"></div>
-  </div>
-  <div id="held">
-    <div class="h-cube-wrap">
-      <div class="h-face front"></div>
-      <div class="h-face back"></div>
-      <div class="h-face left"></div>
-      <div class="h-face right"></div>
-      <div class="h-face top"></div>
-      <div class="h-face bottom"></div>
-    </div>
-  </div>
+  <div id="crosshair"><div class="dot"></div><div class="tri top"></div><div class="tri bottom"></div><div class="tri left"></div><div class="tri right"></div></div>
+  <div id="held"><div class="h-cube-wrap"><div class="h-face front"></div><div class="h-face back"></div><div class="h-face left"></div><div class="h-face right"></div><div class="h-face top"></div><div class="h-face bottom"></div></div></div>
   <div id="hotbar"></div>
   <div id="blockmenu"></div>
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script>
-  (function() {
-    var CHUNK_SIZE = 16;
-    var RENDER_DISTANCE = 42;
-    var PLAYER_HEIGHT = 1.6;
-    var BASE_SPEED = 3.6;
-    var MOVE_SPEED = BASE_SPEED;
-    var JUMP_FORCE = 7;
-    var GRAVITY = 20;
-    var MOUSE_SENSITIVITY = 0.002;
-    var REACH = 7;
-    var TERRAIN_DEPTH = 6;
-    var SURFACE_Y = TERRAIN_DEPTH - 1;
+(function() {
+  // ===== CONSTANTS =====
+  var CHUNK_SIZE = 16, RENDER_DISTANCE = 42, PLAYER_HEIGHT = 1.6;
+  var BASE_SPEED = 3.6, MOVE_SPEED = BASE_SPEED, JUMP_FORCE = 7, GRAVITY = 20;
+  var MOUSE_SENSITIVITY = 0.002, REACH = 7, TERRAIN_DEPTH = 6, SURFACE_Y = 5;
+  var DX = [1, 0, -1, 0], DZ = [0, 1, 0, -1], OPP = [2, 3, 0, 1];
+  var FACE_TO_DIR = { top: -1, bottom: -1, east: 0, west: 2, south: 1, north: 3 };
+  var DIR_TO_FACE = ['east', 'south', 'west', 'north'];
 
-    var LAYER_COLORS = {
-      0: { fill: 0x666666, edge: 0x444444 },
-      1: { fill: 0xbbbbbb, edge: 0x999999 },
-      2: { fill: 0xcccccc, edge: 0xaaaaaa },
-      3: { fill: 0x8b6914, edge: 0x6b5010 },
-      4: { fill: 0xa0782c, edge: 0x7a5c20 },
-      5: { fill: 0x556b2f, edge: 0x3d4f22 },
-    };
+  // ===== BLOCK TYPES =====
+  var LAYER_COLORS = {
+    0: { fill: 0x666666, edge: 0x444444 },
+    1: { fill: 0xbbbbbb, edge: 0x999999 },
+    2: { fill: 0xcccccc, edge: 0xaaaaaa },
+    3: { fill: 0x8b6914, edge: 0x6b5010 },
+    4: { fill: 0xa0782c, edge: 0x7a5c20 },
+    5: { fill: 0x556b2f, edge: 0x3d4f22 }
+  };
+  var BLOCK_TYPES = {
+    'default':  { fill: 0xffffff, edge: 0xbbbbbb, cssFill: '#ffffff', cssEdge: '#aaa', label: 'Default', redstone: false },
+    'grass':    { fill: 0x556b2f, edge: 0x3d4f22, cssFill: '#556b2f', cssEdge: '#3d4f22', label: 'Grass', redstone: false },
+    'dirt':     { fill: 0x8b6914, edge: 0x6b5010, cssFill: '#8b6914', cssEdge: '#6b5010', label: 'Dirt', redstone: false },
+    'stone':    { fill: 0xbbbbbb, edge: 0x999999, cssFill: '#bbbbbb', cssEdge: '#888', label: 'Stone', redstone: false },
+    'bedrock':  { fill: 0x666666, edge: 0x444444, cssFill: '#666666', cssEdge: '#444', label: 'Bedrock', redstone: false },
+    'rs_torch': { fill: 0xcc2222, edge: 0x881111, cssFill: '#cc2222', cssEdge: '#881111', label: 'RS Torch', redstone: true },
+    'rs_dust':  { fill: 0x881111, edge: 0x550808, cssFill: '#881111', cssEdge: '#550808', label: 'RS Dust', redstone: true },
+    'repeater':  { fill: 0x888888, edge: 0x666666, cssFill: '#888', cssEdge: '#666', label: 'Repeater', redstone: true },
+    'piston':   { fill: 0x887755, edge: 0x665533, cssFill: '#887755', cssEdge: '#665533', label: 'Piston', redstone: true }
+  };
+  var BLOCK_TYPE_LIST = Object.keys(BLOCK_TYPES);
 
-    var BLOCK_TYPES = {
-      'default':  { fill: 0xffffff, edge: 0xbbbbbb, cssFill: '#ffffff', cssEdge: '#aaa',    label: 'Default' },
-      'grass':    { fill: 0x556b2f, edge: 0x3d4f22, cssFill: '#556b2f', cssEdge: '#3d4f22', label: 'Grass' },
-      'dirt':     { fill: 0x8b6914, edge: 0x6b5010, cssFill: '#8b6914', cssEdge: '#6b5010', label: 'Dirt' },
-      'stone':    { fill: 0xbbbbbb, edge: 0x999999, cssFill: '#bbbbbb', cssEdge: '#888',    label: 'Stone' },
-      'bedrock':  { fill: 0x666666, edge: 0x444444, cssFill: '#666666', cssEdge: '#444',    label: 'Bedrock' },
-    };
-    var BLOCK_TYPE_LIST = ['default', 'grass', 'dirt', 'stone', 'bedrock'];
+  // ===== THREE.JS SETUP =====
+  var scene = new THREE.Scene(); scene.background = new THREE.Color(0x87ceeb);
+  var camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 200);
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
 
-    var scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-    var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
+  // Materials
+  var layerFillM = {}, layerEdgeM = {};
+  for (var ly = 0; ly < TERRAIN_DEPTH; ly++) {
+    layerFillM[ly] = new THREE.MeshBasicMaterial({ color: LAYER_COLORS[ly].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    layerEdgeM[ly] = new THREE.LineBasicMaterial({ color: LAYER_COLORS[ly].edge });
+  }
+  var btFillM = {}, btEdgeM = {};
+  for (var i = 0; i < BLOCK_TYPE_LIST.length; i++) {
+    var bn = BLOCK_TYPE_LIST[i];
+    btFillM[bn] = new THREE.MeshBasicMaterial({ color: BLOCK_TYPES[bn].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    btEdgeM[bn] = new THREE.LineBasicMaterial({ color: BLOCK_TYPES[bn].edge });
+  }
+  var torchTipMat = new THREE.MeshBasicMaterial({ color: 0xdd1111 });
+  var torchTipDimMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+  var torchStickMat = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+  var repeaterGreyMat = new THREE.MeshBasicMaterial({ color: 0x888888, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  var repeaterGreyEdgeMat = new THREE.LineBasicMaterial({ color: 0x666666 });
+  var repeaterRedMat = new THREE.MeshBasicMaterial({ color: 0xdd1111 });
+  var repeaterRedDimMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+  var repeaterTickMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
+  var pistonBodyMat = new THREE.MeshBasicMaterial({ color: 0x887755, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  var pistonBodyEdgeMat = new THREE.LineBasicMaterial({ color: 0x665533 });
+  var pistonHeadMat = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+  var pistonArmMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
+  var dustMats = [];
+  for (var dp = 0; dp <= 15; dp++) {
+    var r = Math.floor(80 + (dp / 15) * 175);
+    var g = Math.floor(dp / 15 * 30);
+    dustMats.push(new THREE.MeshBasicMaterial({ color: (r << 16) | (g << 8), transparent: true, opacity: 0.9 }));
+  }
+  var dustEdgeMat = new THREE.LineBasicMaterial({ color: 0x550808 });
 
-    var layerFillMaterials = {};
-    var layerEdgeMaterials = {};
-    for (var ly = 0; ly < TERRAIN_DEPTH; ly++) {
-      layerFillMaterials[ly] = new THREE.MeshBasicMaterial({ color: LAYER_COLORS[ly].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-      layerEdgeMaterials[ly] = new THREE.LineBasicMaterial({ color: LAYER_COLORS[ly].edge });
-    }
-    var blockTypeFillMaterials = {};
-    var blockTypeEdgeMaterials = {};
-    for (var bt = 0; bt < BLOCK_TYPE_LIST.length; bt++) {
-      var bname = BLOCK_TYPE_LIST[bt];
-      blockTypeFillMaterials[bname] = new THREE.MeshBasicMaterial({ color: BLOCK_TYPES[bname].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-      blockTypeEdgeMaterials[bname] = new THREE.LineBasicMaterial({ color: BLOCK_TYPES[bname].edge });
-    }
+  var blockGeo = new THREE.BoxGeometry(1, 1, 1);
+  var edgeGeo = new THREE.EdgesGeometry(blockGeo);
+  var highlightMesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
+  highlightMesh.visible = false; scene.add(highlightMesh);
 
-    var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-    var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
+  // ===== WORLD DATA =====
+  var raycaster = new THREE.Raycaster(); raycaster.far = REACH;
+  var screenCenter = new THREE.Vector2(0, 0);
+  var targetBlock = null, targetNormal = null, targetIsRedstone = false;
+  var worldBlocks = {}, chunkBlockSet = {}, chunks = {}, cloudChunks = {};
+  var redstoneData = {}, redstoneMeshes = {};
+  var updateQueue = [], currentTick = 0, tickAccum = 0;
+  var TICK_RATE = 1 / 10;
 
-    var highlightMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
-    var highlightMesh = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), highlightMat);
-    highlightMesh.visible = false;
-    scene.add(highlightMesh);
+  function bk(x, y, z) { return x + ',' + y + ',' + z; }
+  function ck(cx, cz) { return cx + ',' + cz; }
+  function nb(x, y, z, d) { return [x + DX[d], y, z + DZ[d]]; }
+  function normalToDir(n) {
+    if (Math.abs(n.x) > 0.5) return n.x > 0 ? 0 : 2;
+    if (Math.abs(n.z) > 0.5) return n.z > 0 ? 1 : 3;
+    return -1;
+  }
+  function playerFacingDir() {
+    var fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    if (Math.abs(fx) > Math.abs(fz)) return fx > 0 ? 0 : 2;
+    return fz > 0 ? 1 : 3;
+  }
+  function isRedstoneType(type) { return type === 'rs_torch' || type === 'rs_dust' || type === 'repeater' || type === 'piston'; }
 
-    var raycaster = new THREE.Raycaster();
-    raycaster.far = REACH;
-    var screenCenter = new THREE.Vector2(0, 0);
-    var targetBlock = null;
-    var targetNormal = null;
-
-    var worldBlocks = {};
-    var chunkBlockSet = {};
-    var chunks = {};
-    var cloudChunks = {};
-
-    function bk(x, y, z) { return x + ',' + y + ',' + z; }
-    function chunkKey(cx, cz) { return cx + ',' + cz; }
-    function blockBucketKey(data) {
-      if (data.terrain) return 'T' + data.layer;
-      return 'P' + data.type;
-    }
-
-    function ensureChunkData(cx, cz) {
-      var ck = chunkKey(cx, cz);
-      if (chunkBlockSet[ck]) return;
-      chunkBlockSet[ck] = {};
-      for (var lx = 0; lx < CHUNK_SIZE; lx++) {
-        for (var lz = 0; lz < CHUNK_SIZE; lz++) {
-          var wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
-          for (var dy = 0; dy < TERRAIN_DEPTH; dy++) {
-            var key = bk(wx, dy, wz);
-            worldBlocks[key] = { terrain: true, layer: dy };
-            chunkBlockSet[ck][key] = true;
-          }
-        }
+  // ===== CHUNK SYSTEM =====
+  function ensureChunkData(cx, cz) {
+    var k = ck(cx, cz); if (chunkBlockSet[k]) return;
+    chunkBlockSet[k] = {};
+    for (var lx = 0; lx < CHUNK_SIZE; lx++) for (var lz = 0; lz < CHUNK_SIZE; lz++) {
+      var wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
+      for (var dy = 0; dy < TERRAIN_DEPTH; dy++) {
+        var key = bk(wx, dy, wz);
+        worldBlocks[key] = { terrain: true, layer: dy };
+        chunkBlockSet[k][key] = true;
       }
     }
-
-    function rebuildChunkMesh(cx, cz) {
-      var ck = chunkKey(cx, cz);
-      if (chunks[ck]) {
-        for (var li = 0; li < chunks[ck].meshes.length; li++) {
-          scene.remove(chunks[ck].meshes[li].cubeMesh);
-          scene.remove(chunks[ck].meshes[li].edgeMesh);
-          chunks[ck].meshes[li].cubeMesh.dispose();
-          chunks[ck].meshes[li].edgeMesh.dispose();
-        }
-        delete chunks[ck];
-      }
-      var blockSet = chunkBlockSet[ck];
-      if (!blockSet) return;
-      var blockKeys = Object.keys(blockSet);
-      if (blockKeys.length === 0) return;
-      var buckets = {};
-      for (var i = 0; i < blockKeys.length; i++) {
-        var p = blockKeys[i].split(',');
-        var bx = parseInt(p[0]), by = parseInt(p[1]), bz = parseInt(p[2]);
-        var blockData = worldBlocks[blockKeys[i]];
-        var bk2 = blockBucketKey(blockData);
-        if (!buckets[bk2]) buckets[bk2] = [];
-        buckets[bk2].push([bx, by, bz]);
-      }
-      var allMeshes = [];
-      var allPositions = [];
-      var instanceOffset = 0;
-      var bKeys = Object.keys(buckets).sort();
-      for (var bi = 0; bi < bKeys.length; bi++) {
-        var bkey = bKeys[bi];
-        var bPositions = buckets[bkey];
-        var fillMat, edgeMat;
-        if (bkey.charAt(0) === 'T') {
-          var layerNum = parseInt(bkey.substring(1));
-          fillMat = layerFillMaterials[layerNum];
-          edgeMat = layerEdgeMaterials[layerNum];
-        } else {
-          var typeName = bkey.substring(1);
-          fillMat = blockTypeFillMaterials[typeName];
-          edgeMat = blockTypeEdgeMaterials[typeName];
-        }
-        var cubeMesh = new THREE.InstancedMesh(blockGeometry, fillMat, bPositions.length);
-        var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMat, bPositions.length);
-        var mat4 = new THREE.Matrix4();
-        for (var j = 0; j < bPositions.length; j++) {
-          mat4.setPosition(bPositions[j][0], bPositions[j][1], bPositions[j][2]);
-          cubeMesh.setMatrixAt(j, mat4);
-          edgeMesh.setMatrixAt(j, mat4);
-          allPositions.push(bPositions[j]);
-        }
-        cubeMesh.instanceMatrix.needsUpdate = true;
-        edgeMesh.instanceMatrix.needsUpdate = true;
-        cubeMesh.userData.chunkKey = ck;
-        cubeMesh.userData.instanceOffset = instanceOffset;
-        scene.add(cubeMesh);
-        scene.add(edgeMesh);
-        allMeshes.push({ cubeMesh: cubeMesh, edgeMesh: edgeMesh, startIdx: instanceOffset });
-        instanceOffset += bPositions.length;
-      }
-      chunks[ck] = { meshes: allMeshes, positions: allPositions };
+  }
+  function rebuildChunk(cx, cz) {
+    var k = ck(cx, cz);
+    if (chunks[k]) { for (var li = 0; li < chunks[k].meshes.length; li++) { scene.remove(chunks[k].meshes[li].cm); scene.remove(chunks[k].meshes[li].em); chunks[k].meshes[li].cm.dispose(); chunks[k].meshes[li].em.dispose(); } delete chunks[k]; }
+    var bs = chunkBlockSet[k]; if (!bs) return;
+    var keys = Object.keys(bs); if (!keys.length) return;
+    var buckets = {};
+    for (var i = 0; i < keys.length; i++) {
+      var p = keys[i].split(','), bx = +p[0], by = +p[1], bz = +p[2];
+      var bd = worldBlocks[keys[i]];
+      var bkey = bd.terrain ? 'T' + bd.layer : 'P' + bd.type;
+      if (!buckets[bkey]) buckets[bkey] = [];
+      buckets[bkey].push([bx, by, bz]);
     }
+    var allM = [], allP = [], off = 0;
+    var bkeys = Object.keys(buckets).sort();
+    for (var bi = 0; bi < bkeys.length; bi++) {
+      var bk2 = bkeys[bi], bp = buckets[bk2];
+      var fm, em;
+      if (bk2.charAt(0) === 'T') { var ln = +bk2.substring(1); fm = layerFillM[ln]; em = layerEdgeM[ln]; }
+      else { var tn = bk2.substring(1); fm = btFillM[tn]; em = btEdgeM[tn]; }
+      var cm = new THREE.InstancedMesh(blockGeo, fm, bp.length);
+      var eg = new THREE.InstancedMesh(edgeGeo, em, bp.length);
+      var m4 = new THREE.Matrix4();
+      for (var j = 0; j < bp.length; j++) { m4.setPosition(bp[j][0], bp[j][1], bp[j][2]); cm.setMatrixAt(j, m4); eg.setMatrixAt(j, m4); allP.push(bp[j]); }
+      cm.instanceMatrix.needsUpdate = true; eg.instanceMatrix.needsUpdate = true;
+      cm.userData.ck = k; cm.userData.off = off;
+      scene.add(cm); scene.add(eg);
+      allM.push({ cm: cm, em: eg }); off += bp.length;
+    }
+    chunks[k] = { meshes: allM, positions: allP };
+  }
+  function destroyBlock(x, y, z) {
+    var key = bk(x, y, z); if (!worldBlocks[key]) return;
+    if (worldBlocks[key].terrain && worldBlocks[key].layer === 0) return;
+    // Remove redstone if any
+    if (redstoneData[key]) { removeRS(x, y, z); }
+    delete worldBlocks[key];
+    var c = ck(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    if (chunkBlockSet[c]) delete chunkBlockSet[c][key];
+    rebuildChunk(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    scheduleRSUpdate(x, y, z, 0); scheduleRSUpdate(x, y, z + 1, 0); scheduleRSUpdate(x, y, z - 1, 0);
+    scheduleRSUpdate(x + 1, y, z, 0); scheduleRSUpdate(x - 1, y, z, 0);
+  }
+  function placeBlock(x, y, z, type) {
+    var key = bk(x, y, z); if (worldBlocks[key]) return false;
+    if (Math.abs(x - playerPos.x) < 0.8 && Math.abs(z - playerPos.z) < 0.8 && y - 0.5 < playerPos.y + 0.2 && y + 0.5 > playerPos.y - PLAYER_HEIGHT) return false;
+    // Remove dust if placing solid block on dust
+    if (redstoneData[key] && redstoneData[key].type === 'rs_dust') removeRS(x, y, z);
+    if (isRedstoneType(type)) {
+      worldBlocks[key] = { placed: true, type: type, noCol: type === 'rs_dust' };
+    } else {
+      worldBlocks[key] = { placed: true, type: type };
+    }
+    var c = ck(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    if (!chunkBlockSet[c]) chunkBlockSet[c] = {};
+    chunkBlockSet[c][key] = true;
+    rebuildChunk(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    return true;
+  }
+  function createChunk(cx, cz) { var k = ck(cx, cz); if (chunks[k]) return; ensureChunkData(cx, cz); rebuildChunk(cx, cz); }
+  function removeChunk(key) { if (!chunks[key]) return; for (var li = 0; li < chunks[key].meshes.length; li++) { scene.remove(chunks[key].meshes[li].cm); scene.remove(chunks[key].meshes[li].em); chunks[key].meshes[li].cm.dispose(); chunks[key].meshes[li].em.dispose(); } delete chunks[key]; }
 
-    function destroyBlock(x, y, z) {
-      var key = bk(x, y, z);
-      if (!worldBlocks[key]) return;
-      if (worldBlocks[key].terrain && worldBlocks[key].layer === 0) return;
+  // ===== REDSTONE GEOMETRY BUILDERS =====
+  function createTorchMesh(data) {
+    var g = new THREE.Group();
+    var stick = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.12), torchStickMat);
+    var tip = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25), data.power > 0 ? torchTipMat : torchTipDimMat);
+    tip.userData.isTip = true;
+    var face = data.face || 'top';
+    if (face === 'top') { stick.position.y = 0.25; tip.position.y = 0.56; }
+    else if (face === 'north') { stick.rotation.x = Math.PI / 2; stick.position.z = -0.25; tip.rotation.x = Math.PI / 2; tip.position.z = -0.56; }
+    else if (face === 'south') { stick.rotation.x = -Math.PI / 2; stick.position.z = 0.25; tip.rotation.x = -Math.PI / 2; tip.position.z = 0.56; }
+    else if (face === 'east') { stick.rotation.z = -Math.PI / 2; stick.position.x = 0.25; tip.rotation.z = -Math.PI / 2; tip.position.x = 0.56; }
+    else if (face === 'west') { stick.rotation.z = Math.PI / 2; stick.position.x = -0.25; tip.rotation.z = Math.PI / 2; tip.position.x = -0.56; }
+    g.add(stick); g.add(tip);
+    return g;
+  }
+  function getDustConnections(x, y, z) {
+    var c = 0; // 4-bit: N=1, E=2, S=4, W=8
+    for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); if (redstoneData[bk(n[0], n[1], n[2])] && redstoneData[bk(n[0], n[1], n[2])].type === 'rs_dust') c |= (1 << d); }
+    return c;
+  }
+  function createDustMesh(data, x, y, z) {
+    var g = new THREE.Group();
+    var conn = getDustConnections(x, y, z);
+    var pw = data.power;
+    // Center dot
+    var center = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.3), dustMats[pw]);
+    center.position.y = 0.46; g.add(center);
+    // Arms
+    for (var d = 0; d < 4; d++) {
+      if (conn & (1 << d)) {
+        var isNS = (d === 1 || d === 3);
+        var arm = new THREE.Mesh(
+          new THREE.BoxGeometry(isNS ? 0.2 : 0.5, 0.08, isNS ? 0.5 : 0.2),
+          dustMats[pw]
+        );
+        arm.position.set(DX[d] * 0.25, 0.46, DZ[d] * 0.25);
+        g.add(arm);
+      }
+    }
+    // Edge lines on center
+    var ce = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.3, 0.08, 0.3)), dustEdgeMat);
+    ce.position.y = 0.46; g.add(ce);
+    return g;
+  }
+  function createRepeaterMesh(data) {
+    var g = new THREE.Group();
+    // Half-height grey body
+    var body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.45, 0.5), repeaterGreyMat);
+    body.position.y = 0.225; g.add(body);
+    var be = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.9, 0.45, 0.5)), repeaterGreyEdgeMat);
+    be.position.y = 0.225; g.add(be);
+    // Red line down middle
+    var rmat = data.power > 0 ? repeaterRedMat : repeaterRedDimMat;
+    rmat = rmat.clone(); rmat.userData.isPowerIndicator = true;
+    var line = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.47, 0.15), rmat);
+    line.position.set(0, 0.235, 0); line.userData.isPowerIndicator = true; g.add(line);
+    // Tick indicator (dark bar showing delay 1-4)
+    var tickW = 0.15 * data.delay;
+    var tick = new THREE.Mesh(new THREE.BoxGeometry(tickW, 0.47, 0.08), repeaterTickMat);
+    tick.position.set(-0.2, 0.235, 0.19); tick.userData.isTick = true; g.add(tick);
+    // Small triangles on front/back to show direction
+    var triSize = 0.12;
+    var triGeo = new THREE.BufferGeometry();
+    var tv = new Float32Array([-triSize, 0, 0, triSize, 0, -triSize, triSize, 0, triSize]);
+    triGeo.setAttribute('position', new THREE.BufferAttribute(tv, 3));
+    triGeo.computeVertexNormals();
+    var tri = new THREE.Mesh(triGeo, rmat); tri.userData.isPowerIndicator = true;
+    tri.position.set(0.45, 0.01, 0); tri.rotation.y = -Math.PI / 2; g.add(tri);
+    // Rotate whole group based on direction
+    g.rotation.y = -data.direction * Math.PI / 2;
+    return g;
+  }
+  function createPistonMesh(data) {
+    var g = new THREE.Group();
+    // Body
+    var body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), pistonBodyMat);
+    body.position.y = 0.425; g.add(body);
+    var be = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.85, 0.85, 0.85)), pistonBodyEdgeMat);
+    be.position.y = 0.425; g.add(be);
+    // Head (extends when powered)
+    var headGroup = new THREE.Group();
+    headGroup.userData.isHead = true;
+    var head = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.7), pistonHeadMat);
+    head.position.x = 0.5; headGroup.add(head);
+    var arm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), pistonArmMat);
+    arm.position.x = 0.35; headGroup.add(arm);
+    if (data.powered) headGroup.position.x = 1; else headGroup.position.x = 0;
+    g.add(headGroup);
+    g.rotation.y = -data.direction * Math.PI / 2;
+    return g;
+  }
+
+  // ===== REDSTONE MESH MANAGEMENT =====
+  function addRSMesh(x, y, z) {
+    var key = bk(x, y, z); var data = redstoneData[key]; if (!data) return;
+    removeRSMesh(x, y, z);
+    var g;
+    if (data.type === 'rs_torch') g = createTorchMesh(data);
+    else if (data.type === 'rs_dust') g = createDustMesh(data, x, y, z);
+    else if (data.type === 'repeater') g = createRepeaterMesh(data);
+    else if (data.type === 'piston') g = createPistonMesh(data);
+    if (!g) return;
+    g.position.set(x, y, z);
+    scene.add(g);
+    redstoneMeshes[key] = g;
+  }
+  function removeRSMesh(x, y, z) {
+    var key = bk(x, y, z); var m = redstoneMeshes[key]; if (!m) return;
+    scene.remove(m);
+    m.traverse(function(c) { if (c.geometry) c.geometry.dispose(); });
+    delete redstoneMeshes[key];
+  }
+  function updateRSMesh(x, y, z) {
+    var key = bk(x, y, z); var data = redstoneData[key]; if (!data) return;
+    var m = redstoneMeshes[key];
+    // Update power-dependent visuals without full rebuild
+    if (m) {
+      m.traverse(function(c) {
+        if (c.userData.isPowerIndicator) {
+          c.material = data.power > 0 ? repeaterRedMat : repeaterRedDimMat;
+        }
+        if (c.userData.isTip) {
+          c.material = data.power > 0 ? torchTipMat : torchTipDimMat;
+        }
+      });
+    }
+    if (data.type === 'rs_dust') { addRSMesh(x, y, z); }
+    if (data.type === 'piston') { addRSMesh(x, y, z); }
+  }
+
+  // ===== REDSTONE PLACEMENT =====
+  function placeRedstone(x, y, z, type, face) {
+    var key = bk(x, y, z);
+    if (redstoneData[key]) return;
+    if (worldBlocks[key] && !redstoneData[key]) return; // occupied
+    var data = { type: type, power: 0, direction: 0, delay: 1, face: face || 'top', powered: false };
+    if (type === 'rs_torch') { data.power = 15; data.face = face || 'top'; }
+    if (type === 'repeater') { data.direction = playerFacingDir(); data.face = 'top'; }
+    if (type === 'piston') { data.direction = playerFacingDir(); data.face = 'top'; data.powered = false; }
+    redstoneData[key] = data;
+    // Add to world for rendering (but dust is no-collision, not in chunk mesh)
+    if (type !== 'rs_dust') {
+      worldBlocks[key] = { placed: true, type: type };
+      var c = ck(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+      if (!chunkBlockSet[c]) chunkBlockSet[c] = {};
+      chunkBlockSet[c][key] = true;
+      rebuildChunk(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    }
+    addRSMesh(x, y, z);
+    scheduleRSUpdate(x, y, z, 0);
+    // Schedule neighbor updates
+    for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); scheduleRSUpdate(n[0], n[1], n[2], 1); }
+    scheduleRSUpdate(x, y - 1, z, 1); scheduleRSUpdate(x, y + 1, z, 1);
+  }
+  function removeRS(x, y, z) {
+    var key = bk(x, y, z);
+    var data = redstoneData[key]; if (!data) return;
+    if (data.type === 'piston' && data.powered) retractPiston(x, y, z, data.direction);
+    removeRSMesh(x, y, z);
+    if (data.type !== 'rs_dust' && worldBlocks[key]) {
       delete worldBlocks[key];
-      var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
-      if (chunkBlockSet[ck]) delete chunkBlockSet[ck][key];
-      rebuildChunkMesh(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+      var c = ck(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+      if (chunkBlockSet[c]) delete chunkBlockSet[c][key];
+      rebuildChunk(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
     }
+    delete redstoneData[key];
+    // Schedule neighbor RS updates
+    for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); scheduleRSUpdate(n[0], n[1], n[2], 1); }
+    scheduleRSUpdate(x, y - 1, z, 1); scheduleRSUpdate(x, y + 1, z, 1);
+  }
 
-    function placeBlock(x, y, z) {
-      var key = bk(x, y, z);
-      if (worldBlocks[key]) return;
+  // ===== PISTON PUSHING =====
+  function tryPushBlock(x, y, z, dir) {
+    var key = bk(x, y, z);
+    if (!worldBlocks[key]) return true; // empty, can push
+    if (redstoneData[key]) return false; // can't push redstone
+    if (worldBlocks[key].terrain) return false; // can't push terrain
+    var nx = x + DX[dir], nz = z + DZ[dir];
+    if (worldBlocks[bk(nx, y, nz)]) return false; // blocked
+    // Move block
+    var blockData = worldBlocks[key];
+    delete worldBlocks[key];
+    var oc = ck(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    if (chunkBlockSet[oc]) delete chunkBlockSet[oc][key];
+    rebuildChunk(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
+    worldBlocks[bk(nx, y, nz)] = blockData;
+    var nc = ck(Math.floor(nx / CHUNK_SIZE), Math.floor(nz / CHUNK_SIZE));
+    if (!chunkBlockSet[nc]) chunkBlockSet[nc] = {};
+    chunkBlockSet[nc][bk(nx, y, nz)] = true;
+    rebuildChunk(Math.floor(nx / CHUNK_SIZE), Math.floor(nz / CHUNK_SIZE));
+    return true;
+  }
+  function extendPiston(x, y, z, dir) {
+    var nx = x + DX[dir], nz = z + DZ[dir];
+    tryPushBlock(nx, y, nz, dir);
+  }
+  function retractPiston(x, y, z, dir) {
+    // Pull back piston head position (visual only for now)
+  }
+
+  // ===== REDSTONE SIGNAL PROPAGATION =====
+  function scheduleRSUpdate(x, y, z, delay) {
+    var tick = currentTick + (delay || 0);
+    var key = bk(x, y, z);
+    for (var i = 0; i < updateQueue.length; i++) {
+      if (updateQueue[i].key === key && updateQueue[i].tick === tick) return;
+    }
+    updateQueue.push({ x: x, y: y, z: z, tick: tick, key: key });
+  }
+  function getWeakPower(x, y, z, fromDir) {
+    var data = redstoneData[bk(x, y, z)]; if (!data) return 0;
+    if (data.type === 'rs_dust') return Math.max(0, data.power - 1);
+    if (data.type === 'rs_torch') return data.power;
+    if (data.type === 'repeater' && fromDir === data.direction) return data.power;
+    return 0;
+  }
+  function getStrongPower(x, y, z) {
+    var data = redstoneData[bk(x, y, z)]; if (!data) return 0;
+    if (data.type === 'rs_torch') return data.power;
+    if (data.type === 'repeater') return data.power;
+    return 0;
+  }
+  function isBlockIndirectlyPowered(x, y, z) {
+    // Check if any adjacent redstone provides power
+    for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); if (getStrongPower(n[0], n[1], n[2]) > 0) return true; }
+    if (getStrongPower(x, y - 1, z) > 0) return true;
+    // Quasi-connectivity: check if block above has adjacent power
+    for (var d = 0; d < 4; d++) { var n = nb(x, y + 1, z, d); if (getStrongPower(n[0], n[1], n[2]) > 0) return true; }
+    return false;
+  }
+  function processRSUpdate(x, y, z) {
+    var key = bk(x, y, z);
+    var data = redstoneData[key]; if (!data) return;
+    if (data.type === 'rs_torch') {
+      var ax = x, ay = y, az = z;
+      if (data.face === 'top') ay = y - 1;
+      else if (data.face === 'north') az = z + 1;
+      else if (data.face === 'south') az = z - 1;
+      else if (data.face === 'east') ax = x - 1;
+      else if (data.face === 'west') ax = x + 1;
+      var attachedPowered = isBlockIndirectlyPowered(ax, ay, az);
+      var newPower = attachedPowered ? 0 : 15;
+      if (data.power !== newPower) {
+        data.power = newPower;
+        updateRSMesh(x, y, z);
+        for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); scheduleRSUpdate(n[0], n[1], n[2], 1); }
+        scheduleRSUpdate(x, y - 1, z, 1); scheduleRSUpdate(x, y + 1, z, 1);
+      }
+    }
+    else if (data.type === 'rs_dust') {
+      var maxP = 0;
+      for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); maxP = Math.max(maxP, getWeakPower(n[0], n[1], n[2], OPP[d])); }
+      // Check block below for torch
+      var below = redstoneData[bk(x, y - 1, z)];
+      if (below && below.type === 'rs_torch' && below.face === 'top') maxP = Math.max(maxP, below.power);
+      if (data.power !== maxP) {
+        data.power = maxP;
+        addRSMesh(x, y, z); // rebuild for connection visuals + color
+        for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); scheduleRSUpdate(n[0], n[1], n[2], 1); }
+      }
+    }
+    else if (data.type === 'repeater') {
+      var backDir = OPP[data.direction];
+      var bn = nb(x, y, z, backDir);
+      var inputP = 0;
+      var bdata = redstoneData[bk(bn[0], bn[1], bn[2])];
+      if (bdata) {
+        if (bdata.type === 'rs_dust') inputP = bdata.power;
+        else if (bdata.type === 'rs_torch') inputP = bdata.power;
+        else if (bdata.type === 'repeater' && bdata.direction === backDir) inputP = bdata.power;
+      }
+      // Also check block below for torch
+      var below = redstoneData[bk(x, y - 1, z)];
+      if (below && below.type === 'rs_torch' && below.face === 'top') inputP = Math.max(inputP, below.power);
+      var wantOn = inputP > 0;
+      var isOn = data.power > 0;
+      if (wantOn && !isOn) { scheduleRSUpdate(x, y, z, data.delay); data._pendingOn = true; }
+      else if (!wantOn && isOn) { data.power = 0; updateRSMesh(x, y, z); for (var d = 0; d < 4; d++) { var n2 = nb(x, y, z, d); scheduleRSUpdate(n2[0], n2[1], n2[2], 1); } }
+      if (wantOn && isOn && data._pendingOn) { data._pendingOn = false; }
+    }
+    else if (data.type === 'piston') {
+      var shouldPower = false;
+      for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); if (getStrongPower(n[0], n[1], n[2]) > 0) shouldPower = true; }
+      if (getStrongPower(x, y - 1, z) > 0) shouldPower = true;
+      // Quasi-connectivity
+      for (var d = 0; d < 4; d++) { var n = nb(x, y + 1, z, d); if (getStrongPower(n[0], n[1], n[2]) > 0) shouldPower = true; }
+      if (shouldPower && !data.powered) {
+        data.powered = true; data.power = 15;
+        extendPiston(x, y, z, data.direction);
+        addRSMesh(x, y, z);
+      } else if (!shouldPower && data.powered) {
+        data.powered = false; data.power = 0;
+        retractPiston(x, y, z, data.direction);
+        addRSMesh(x, y, z);
+      }
+    }
+  }
+  function processRepeaterPending(x, y, z) {
+    var data = redstoneData[bk(x, y, z)];
+    if (data && data.type === 'repeater' && data._pendingOn && data.power === 0) {
+      data.power = 15; data._pendingOn = false;
+      updateRSMesh(x, y, z);
+      for (var d = 0; d < 4; d++) { var n = nb(x, y, z, d); scheduleRSUpdate(n[0], n[1], n[2], 1); }
+    }
+  }
+  function processTickQueue() {
+    var toProcess = [];
+    var remaining = [];
+    for (var i = 0; i < updateQueue.length; i++) {
+      if (updateQueue[i].tick <= currentTick) toProcess.push(updateQueue[i]);
+      else remaining.push(updateQueue[i]);
+    }
+    updateQueue = remaining;
+    for (var i = 0; i < toProcess.length; i++) processRSUpdate(toProcess[i].x, toProcess[i].y, toProcess[i].z);
+  }
+
+  // ===== CLOUDS =====
+  var CLOUD_HEIGHT = 50, CLOUD_SPACING = 8;
+  var cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+  var CLOUD_FORMATIONS = [
+    [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1]],
+    [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[1,0,1],[2,0,1],[1,1,1],[2,1,1]],
+    [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[2,0,1],[0,0,2],[1,0,2],[2,0,2]],
+    [[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[1,0,2],[2,0,2],[3,0,2]],
+    [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[1,1,1]],
+    [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[2,0,2],[3,0,2]],
+    [[0,0,0],[1,0,0],[0,0,1],[1,0,1],[0,1,0],[1,1,0]],
+    [[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[1,1,1],[2,1,1]],
+    [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[1,1,0],[2,1,0],[1,1,1],[2,1,1],[1,1,2],[2,1,2]],
+    [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[4,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[4,0,2]]
+  ];
+  function hash(x, z) { var n = x * 374761393 + z * 668265263; n = (n ^ (n >> 13)) * 1274126177; return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff; }
+  function createCloudChunk(cx, cz) {
+    var key = 'c' + ck(cx, cz); if (cloudChunks[key]) return;
+    var pos = [], sx = cx * CHUNK_SIZE, sz = cz * CHUNK_SIZE;
+    for (var gx = 0; gx < CHUNK_SIZE; gx += CLOUD_SPACING) for (var gz = 0; gz < CHUNK_SIZE; gz += CLOUD_SPACING) {
+      var wx = sx + gx, wz = sz + gz;
+      if (hash(wx, wz) > 0.35) {
+        var f = CLOUD_FORMATIONS[Math.floor(hash(wx + 500, wz + 500) * CLOUD_FORMATIONS.length)];
+        var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 5);
+        for (var b = 0; b < f.length; b++) pos.push(wx + f[b][0], cy + f[b][1], wz + f[b][2]);
+      }
+    }
+    if (!pos.length) { cloudChunks[key] = null; return; }
+    var cnt = pos.length / 3, mesh = new THREE.InstancedMesh(blockGeo, cloudMat, cnt), m4 = new THREE.Matrix4();
+    for (var i = 0; i < cnt; i++) { m4.setPosition(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]); mesh.setMatrixAt(i, m4); }
+    mesh.instanceMatrix.needsUpdate = true; scene.add(mesh); cloudChunks[key] = { mesh: mesh };
+  }
+  function removeCloudChunk(key) { var c = cloudChunks[key]; if (!c) return; scene.remove(c.mesh); c.mesh.dispose(); delete cloudChunks[key]; }
+
+  // ===== COLLISION =====
+  var PW = 0.3, PEF = PLAYER_HEIGHT, PEH = 0.1;
+  function collidesAt(px, py, pz) {
+    var mnx = Math.floor(px - PW + 0.5), mxx = Math.floor(px + PW + 0.5);
+    var mnz = Math.floor(pz - PW + 0.5), mxz = Math.floor(pz + PW + 0.5);
+    var fy = py - PEF, hy = py + PEH;
+    var mny = Math.floor(fy + 0.5), mxy = Math.floor(hy + 0.5);
+    for (var bx = mnx; bx <= mxx; bx++) for (var bz = mnz; bz <= mxz; bz++) for (var by = mny; by <= mxy; by++) {
+      var wd = worldBlocks[bk(bx, by, bz)];
+      if (!wd) continue;
+      if (wd.noCol) continue; // redstone dust has no collision
+      if (px + PW > bx - 0.5 && px - PW < bx + 0.5 && hy > by - 0.5 && fy < by + 0.5 && pz + PW > bz - 0.5 && pz - PW < bz + 0.5) return true;
+    }
+    return false;
+  }
+  function findGround(px, py, pz) {
+    var by = Math.floor(py - PEF + 0.5);
+    for (; by >= -10; by--) if (worldBlocks[bk(Math.floor(px + 0.5), by, Math.floor(pz + 0.5))]) return by + 0.5 + PEF;
+    return py;
+  }
+
+  // ===== HOTBAR =====
+  var hotbarSlots = ['default', 'grass', 'dirt', 'stone', 'bedrock', null, null, null, null, null];
+  var selectedSlot = 0, heldBlock = null;
+  var hotbarEl = document.getElementById('hotbar'), slotCubeEls = [], slotCubeWraps = [];
+  for (var s = 0; s < 10; s++) {
+    var slot = document.createElement('div');
+    slot.className = 'hotbar-slot' + (s === 0 ? ' selected' : '');
+    var cw = document.createElement('div'); cw.className = 'slot-cube-wrap';
+    var faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+    var fe = [];
+    for (var f = 0; f < faces.length; f++) { var fc = document.createElement('div'); fc.className = 'slot-cube-face ' + faces[f]; cw.appendChild(fc); fe.push(fc); }
+    slot.appendChild(cw); slotCubeWraps.push(cw); slotCubeEls.push(fe);
+    var kl = document.createElement('span'); kl.className = 'slot-key'; kl.textContent = s === 9 ? '0' : '' + (s + 1);
+    slot.appendChild(kl); hotbarEl.appendChild(slot);
+  }
+  function updateHotbar() {
+    var sl = hotbarEl.children;
+    for (var i = 0; i < 10; i++) {
+      sl[i].classList.toggle('selected', i === selectedSlot);
+      var t = hotbarSlots[i];
+      if (t && BLOCK_TYPES[t]) {
+        slotCubeWraps[i].style.display = '';
+        var bt = BLOCK_TYPES[t];
+        for (var f = 0; f < 6; f++) { slotCubeEls[i][f].style.background = bt.cssFill; slotCubeEls[i][f].style.borderColor = bt.cssEdge; }
+      } else { slotCubeWraps[i].style.display = 'none'; }
+    }
+  }
+  updateHotbar();
+  var heldEl = document.getElementById('held'), heldFaces = heldEl.querySelectorAll('.h-face');
+  function updateHeld() {
+    if (heldBlock && BLOCK_TYPES[heldBlock]) { heldEl.classList.add('show'); var bt = BLOCK_TYPES[heldBlock]; for (var f = 0; f < heldFaces.length; f++) { heldFaces[f].style.background = bt.cssFill; heldFaces[f].style.borderColor = bt.cssEdge; } }
+    else { heldEl.classList.remove('show'); }
+  }
+
+  // ===== BLOCK MENU =====
+  var menuEl = document.getElementById('blockmenu');
+  for (var mi = 0; mi < BLOCK_TYPE_LIST.length; mi++) {
+    var mbn = BLOCK_TYPE_LIST[mi], btI = BLOCK_TYPES[mbn];
+    var item = document.createElement('div'); item.className = 'menu-item';
+    var mcw = document.createElement('div'); mcw.className = 'menu-cube-wrap';
+    var mf = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+    for (var mfi = 0; mfi < mf.length; mfi++) { var mfc = document.createElement('div'); mfc.className = 'menu-cube-face ' + mf[mfi]; mfc.style.background = btI.cssFill; mfc.style.borderColor = btI.cssEdge; mcw.appendChild(mfc); }
+    item.appendChild(mcw);
+    var lb = document.createElement('span'); lb.className = 'menu-label'; lb.textContent = btI.label; item.appendChild(lb);
+    (function(tn) { item.addEventListener('click', function() { heldBlock = tn; updateHeld(); closeMenu(); }); })(mbn);
+    menuEl.appendChild(item);
+  }
+
+  // ===== CONTROLS =====
+  var keys = {}, pitch = 0, yaw = 0, locked = false, menuOpen = false;
+  var playerPos = new THREE.Vector3(0, SURFACE_Y + PLAYER_HEIGHT, 0);
+  var velocity = new THREE.Vector3(0, 0, 0), onGround = true;
+  var overlay = document.getElementById('overlay');
+  function openMenu() { menuOpen = true; menuEl.classList.add('open'); if (document.pointerLockElement) document.exitPointerLock(); overlay.classList.add('hidden'); }
+  function closeMenu() { menuOpen = false; menuEl.classList.remove('open'); overlay.classList.add('hidden'); setTimeout(function() { renderer.domElement.requestPointerLock(); }, 50); }
+  renderer.domElement.addEventListener('click', function() { if (!menuOpen) renderer.domElement.requestPointerLock(); });
+  document.addEventListener('pointerlockchange', function() {
+    locked = (document.pointerLockElement === renderer.domElement);
+    if (locked) overlay.classList.add('hidden'); else if (!menuOpen) overlay.classList.remove('hidden');
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!locked) return;
+    yaw -= e.movementX * MOUSE_SENSITIVITY; pitch -= e.movementY * MOUSE_SENSITIVITY;
+    if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
+    if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
+  });
+  document.addEventListener('keydown', function(e) {
+    keys[e.code] = true;
+    if (e.code === 'Space') e.preventDefault();
+    if (e.code === 'KeyE') { e.preventDefault(); if (menuOpen) closeMenu(); else openMenu(); return; }
+    var si = -1;
+    if (e.code === 'Digit1') si = 0; else if (e.code === 'Digit2') si = 1; else if (e.code === 'Digit3') si = 2;
+    else if (e.code === 'Digit4') si = 3; else if (e.code === 'Digit5') si = 4; else if (e.code === 'Digit6') si = 5;
+    else if (e.code === 'Digit7') si = 6; else if (e.code === 'Digit8') si = 7; else if (e.code === 'Digit9') si = 8; else if (e.code === 'Digit0') si = 9;
+    if (si >= 0) { if (heldBlock) { hotbarSlots[si] = heldBlock; heldBlock = null; selectedSlot = si; updateHotbar(); updateHeld(); } else { selectedSlot = si; updateHotbar(); } }
+  });
+  document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  document.addEventListener('mousedown', function(e) {
+    if (!locked || menuOpen) return;
+    if (e.button === 0 && targetBlock) {
+      // Left click: destroy or interact with repeater
+      if (targetIsRedstone) {
+        var rd = redstoneData[bk(targetBlock.x, targetBlock.y, targetBlock.z)];
+        if (rd && rd.type === 'repeater') { rd.delay = (rd.delay % 4) + 1; addRSMesh(targetBlock.x, targetBlock.y, targetBlock.z); return; }
+        if (rd) { removeRS(targetBlock.x, targetBlock.y, targetBlock.z); return; }
+      }
+      destroyBlock(targetBlock.x, targetBlock.y, targetBlock.z);
+    } else if (e.button === 2 && targetBlock && targetNormal) {
+      // Right click: place block or interact with repeater
+      if (targetIsRedstone) {
+        var rd = redstoneData[bk(targetBlock.x, targetBlock.y, targetBlock.z)];
+        if (rd && rd.type === 'repeater') { rd.delay = (rd.delay % 4) + 1; addRSMesh(targetBlock.x, targetBlock.y, targetBlock.z); return; }
+      }
       var activeType = hotbarSlots[selectedSlot];
       if (!activeType) return;
-      if (Math.abs(x - playerPos.x) < 0.8 && Math.abs(z - playerPos.z) < 0.8 && y - 0.5 < playerPos.y + 0.2 && y + 0.5 > playerPos.y - PLAYER_HEIGHT) return;
-      worldBlocks[key] = { placed: true, type: activeType };
-      var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
-      if (!chunkBlockSet[ck]) chunkBlockSet[ck] = {};
-      chunkBlockSet[ck][key] = true;
-      rebuildChunkMesh(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
-    }
-
-    function createChunk(cx, cz) {
-      var ck = chunkKey(cx, cz);
-      if (chunks[ck]) return;
-      ensureChunkData(cx, cz);
-      rebuildChunkMesh(cx, cz);
-    }
-
-    function removeChunk(key) {
-      if (!chunks[key]) return;
-      for (var li = 0; li < chunks[key].meshes.length; li++) {
-        scene.remove(chunks[key].meshes[li].cubeMesh);
-        scene.remove(chunks[key].meshes[li].edgeMesh);
-        chunks[key].meshes[li].cubeMesh.dispose();
-        chunks[key].meshes[li].edgeMesh.dispose();
-      }
-      delete chunks[key];
-    }
-
-    // Clouds
-    var CLOUD_HEIGHT = 50;
-    var CLOUD_SPACING = 8;
-    var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
-    var CLOUD_FORMATIONS = [
-      [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1]],
-      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[1,0,1],[2,0,1],[1,1,1],[2,1,1]],
-      [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[2,0,1],[0,0,2],[1,0,2],[2,0,2]],
-      [[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[1,0,2],[2,0,2],[3,0,2]],
-      [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[1,1,1]],
-      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[2,0,2],[3,0,2]],
-      [[0,0,0],[1,0,0],[0,0,1],[1,0,1],[0,1,0],[1,1,0]],
-      [[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[1,1,1],[2,1,1]],
-      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[1,1,0],[2,1,0],[1,1,1],[2,1,1],[1,1,2],[2,1,2]],
-      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[4,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[4,0,2]],
-    ];
-    function hash(x, z) {
-      var n = x * 374761393 + z * 668265263;
-      n = (n ^ (n >> 13)) * 1274126177;
-      return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
-    }
-    function createCloudChunk(cx, cz) {
-      var key = 'c' + chunkKey(cx, cz);
-      if (cloudChunks[key]) return;
-      var positions = [];
-      var startWX = cx * CHUNK_SIZE, startWZ = cz * CHUNK_SIZE;
-      for (var gx = 0; gx < CHUNK_SIZE; gx += CLOUD_SPACING) {
-        for (var gz = 0; gz < CHUNK_SIZE; gz += CLOUD_SPACING) {
-          var wx = startWX + gx, wz = startWZ + gz;
-          if (hash(wx, wz) > 0.35) {
-            var formation = CLOUD_FORMATIONS[Math.floor(hash(wx + 500, wz + 500) * CLOUD_FORMATIONS.length)];
-            var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 5);
-            for (var b = 0; b < formation.length; b++) {
-              positions.push(wx + formation[b][0], cy + formation[b][1], wz + formation[b][2]);
-            }
-          }
-        }
-      }
-      if (positions.length === 0) { cloudChunks[key] = null; return; }
-      var count = positions.length / 3;
-      var mesh = new THREE.InstancedMesh(blockGeometry, cloudMaterial, count);
-      var mat = new THREE.Matrix4();
-      for (var i = 0; i < count; i++) {
-        mat.setPosition(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-        mesh.setMatrixAt(i, mat);
-      }
-      mesh.instanceMatrix.needsUpdate = true;
-      scene.add(mesh);
-      cloudChunks[key] = { mesh: mesh };
-    }
-    function removeCloudChunk(key) {
-      var chunk = cloudChunks[key];
-      if (!chunk) return;
-      scene.remove(chunk.mesh);
-      chunk.mesh.dispose();
-      delete cloudChunks[key];
-    }
-
-    // --- Collision ---
-    var PLAYER_HALF_W = 0.3;
-    var PLAYER_EYE_TO_FEET = PLAYER_HEIGHT;
-    var PLAYER_EYE_TO_HEAD = 0.1;
-    function collidesAt(px, py, pz) {
-      var minX = Math.floor(px - PLAYER_HALF_W + 0.5);
-      var maxX = Math.floor(px + PLAYER_HALF_W + 0.5);
-      var minZ = Math.floor(pz - PLAYER_HALF_W + 0.5);
-      var maxZ = Math.floor(pz + PLAYER_HALF_W + 0.5);
-      var feetY = py - PLAYER_EYE_TO_FEET;
-      var headY = py + PLAYER_EYE_TO_HEAD;
-      var minY = Math.floor(feetY + 0.5);
-      var maxY = Math.floor(headY + 0.5);
-      for (var bx = minX; bx <= maxX; bx++) {
-        for (var bz = minZ; bz <= maxZ; bz++) {
-          for (var by = minY; by <= maxY; by++) {
-            if (worldBlocks[bk(bx, by, bz)]) {
-              if (px + PLAYER_HALF_W > bx - 0.5 && px - PLAYER_HALF_W < bx + 0.5 &&
-                  headY > by - 0.5 && feetY < by + 0.5 &&
-                  pz + PLAYER_HALF_W > bz - 0.5 && pz - PLAYER_HALF_W < bz + 0.5) {
-                return true;
-              }
-            }
-          }
-        }
-      }
-      return false;
-    }
-    function findGroundBelow(px, py, pz) {
-      var by = Math.floor(py - PLAYER_EYE_TO_FEET + 0.5);
-      for (; by >= -10; by--) {
-        if (worldBlocks[bk(Math.floor(px + 0.5), by, Math.floor(pz + 0.5))]) {
-          return by + 0.5 + PLAYER_EYE_TO_FEET;
-        }
-      }
-      return py;
-    }
-
-    // --- Hotbar system ---
-    // Slots 0-4 = the 5 block types, slots 5-9 = empty
-    var hotbarSlots = BLOCK_TYPE_LIST.slice(); // ['default','grass','dirt','stone','bedrock']
-    hotbarSlots.push(null, null, null, null, null); // 5 empty slots
-    var selectedSlot = 0;
-    var heldBlock = null; // block type name or null
-
-    var hotbarEl = document.getElementById('hotbar');
-    var slotCubeEls = [];
-    var slotCubeWraps = [];
-    for (var s = 0; s < 10; s++) {
-      var slot = document.createElement('div');
-      slot.className = 'hotbar-slot' + (s === 0 ? ' selected' : '');
-      var cubeWrap = document.createElement('div');
-      cubeWrap.className = 'slot-cube-wrap';
-      var faces = ['front','back','left','right','top','bottom'];
-      var faceEls = [];
-      for (var f = 0; f < faces.length; f++) {
-        var face = document.createElement('div');
-        face.className = 'slot-cube-face ' + faces[f];
-        cubeWrap.appendChild(face);
-        faceEls.push(face);
-      }
-      slot.appendChild(cubeWrap);
-      slotCubeWraps.push(cubeWrap);
-      slotCubeEls.push(faceEls);
-      var keyLabel = document.createElement('span');
-      keyLabel.className = 'slot-key';
-      keyLabel.textContent = s === 9 ? '0' : '' + (s + 1);
-      slot.appendChild(keyLabel);
-      hotbarEl.appendChild(slot);
-    }
-
-    function updateHotbar() {
-      var slots = hotbarEl.children;
-      for (var i = 0; i < 10; i++) {
-        slots[i].classList.toggle('selected', i === selectedSlot);
-        var type = hotbarSlots[i];
-        if (type && BLOCK_TYPES[type]) {
-          slotCubeWraps[i].style.display = '';
-          var bt = BLOCK_TYPES[type];
-          for (var f = 0; f < 6; f++) {
-            slotCubeEls[i][f].style.background = bt.cssFill;
-            slotCubeEls[i][f].style.borderColor = bt.cssEdge;
-          }
-        } else {
-          slotCubeWraps[i].style.display = 'none';
-        }
-      }
-    }
-    updateHotbar();
-
-    // Held block indicator
-    var heldEl = document.getElementById('held');
-    var heldFaces = heldEl.querySelectorAll('.h-face');
-    function updateHeld() {
-      if (heldBlock && BLOCK_TYPES[heldBlock]) {
-        heldEl.classList.add('show');
-        var bt = BLOCK_TYPES[heldBlock];
-        for (var f = 0; f < heldFaces.length; f++) {
-          heldFaces[f].style.background = bt.cssFill;
-          heldFaces[f].style.borderColor = bt.cssEdge;
-        }
+      var nx = 0, ny = 0, nz = 0;
+      if (Math.abs(targetNormal.x) > 0.5) nx = Math.sign(targetNormal.x);
+      if (Math.abs(targetNormal.y) > 0.5) ny = Math.sign(targetNormal.y);
+      if (Math.abs(targetNormal.z) > 0.5) nz = Math.sign(targetNormal.z);
+      var px = targetBlock.x + nx, py = targetBlock.y + ny, pz = targetBlock.z + nz;
+      // Determine face for torch/repeater placement
+      var face = 'top';
+      if (ny === -1) face = 'top';
+      else if (ny === 1) face = 'bottom';
+      else if (nx === 1) face = 'east';
+      else if (nx === -1) face = 'west';
+      else if (nz === 1) face = 'south';
+      else if (nz === -1) face = 'north';
+      if (isRedstoneType(activeType)) {
+        placeRedstone(px, py, pz, activeType, face);
       } else {
-        heldEl.classList.remove('show');
+        placeBlock(px, py, pz, activeType);
       }
     }
+  });
+  window.addEventListener('resize', function() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
-    // Build block menu
-    var menuEl = document.getElementById('blockmenu');
-    for (var mi = 0; mi < BLOCK_TYPE_LIST.length; mi++) {
-      var mbname = BLOCK_TYPE_LIST[mi];
-      var btInfo = BLOCK_TYPES[mbname];
-      var item = document.createElement('div');
-      item.className = 'menu-item';
-      var mcWrap = document.createElement('div');
-      mcWrap.className = 'menu-cube-wrap';
-      var mFaces = ['front','back','left','right','top','bottom'];
-      for (var mf = 0; mf < mFaces.length; mf++) {
-        var mFace = document.createElement('div');
-        mFace.className = 'menu-cube-face ' + mFaces[mf];
-        mFace.style.background = btInfo.cssFill;
-        mFace.style.borderColor = btInfo.cssEdge;
-        mcWrap.appendChild(mFace);
-      }
-      item.appendChild(mcWrap);
-      var label = document.createElement('span');
-      label.className = 'menu-label';
-      label.textContent = btInfo.label;
-      item.appendChild(label);
-      (function(typeName) {
-        item.addEventListener('click', function() {
-          heldBlock = typeName;
-          updateHeld();
-          closeMenu();
-        });
-      })(mbname);
-      menuEl.appendChild(item);
+  // ===== CHUNK LOADING =====
+  function updateChunks() {
+    var pcx = Math.floor(playerPos.x / CHUNK_SIZE), pcz = Math.floor(playerPos.z / CHUNK_SIZE);
+    var cr = Math.ceil(RENDER_DISTANCE / CHUNK_SIZE), needed = {};
+    for (var dx = -cr; dx <= cr; dx++) for (var dz = -cr; dz <= cr; dz++) {
+      var cx = pcx + dx, cz = pcz + dz, wcx = cx * CHUNK_SIZE + 8, wcz = cz * CHUNK_SIZE + 8;
+      var dist = Math.sqrt((wcx - playerPos.x) * (wcx - playerPos.x) + (wcz - playerPos.z) * (wcz - playerPos.z));
+      if (dist <= RENDER_DISTANCE) { var key = ck(cx, cz); needed[key] = true; if (!chunks[key]) createChunk(cx, cz); if (!cloudChunks['c' + key]) createCloudChunk(cx, cz); }
     }
+    for (var key in chunks) { if (!needed[key]) removeChunk(key); }
+    for (var key in cloudChunks) { if (!needed[key.substring(1)]) removeCloudChunk(key); }
+  }
 
-    // Controls
-    var keys = {};
-    var pitch = 0, yaw = 0, locked = false;
-    var menuOpen = false;
-    var playerPos = new THREE.Vector3(0, SURFACE_Y + PLAYER_HEIGHT, 0);
-    var velocity = new THREE.Vector3(0, 0, 0);
-    var onGround = true;
-    var overlay = document.getElementById('overlay');
-
-    function openMenu() {
-      menuOpen = true;
-      menuEl.classList.add('open');
-      if (document.pointerLockElement) document.exitPointerLock();
-      overlay.classList.add('hidden');
+  // ===== TARGET / RAYCASTING =====
+  function updateTarget() {
+    raycaster.setFromCamera(screenCenter, camera);
+    var meshes = [];
+    for (var key in chunks) { var ml = chunks[key].meshes; for (var mi = 0; mi < ml.length; mi++) meshes.push(ml[mi].cm); }
+    // Add redstone meshes for raycasting
+    var rsMeshArr = [];
+    for (var rk in redstoneMeshes) {
+      redstoneMeshes[rk].traverse(function(c) { if (c.isMesh) rsMeshArr.push(c); });
     }
-    function closeMenu() {
-      menuOpen = false;
-      menuEl.classList.remove('open');
-      overlay.classList.add('hidden');
-      // Auto re-lock
-      setTimeout(function() { renderer.domElement.requestPointerLock(); }, 50);
-    }
-
-    renderer.domElement.addEventListener('click', function() {
-      if (!menuOpen) renderer.domElement.requestPointerLock();
-    });
-    document.addEventListener('pointerlockchange', function() {
-      locked = (document.pointerLockElement === renderer.domElement);
-      if (locked) overlay.classList.add('hidden');
-      else if (!menuOpen) overlay.classList.remove('hidden');
-    });
-    document.addEventListener('mousemove', function(e) {
-      if (!locked) return;
-      yaw -= e.movementX * MOUSE_SENSITIVITY;
-      pitch -= e.movementY * MOUSE_SENSITIVITY;
-      if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
-      if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
-    });
-    document.addEventListener('keydown', function(e) {
-      keys[e.code] = true;
-      if (e.code === 'Space') e.preventDefault();
-      if (e.code === 'KeyE') {
-        e.preventDefault();
-        if (menuOpen) { closeMenu(); } else { openMenu(); }
-        return;
+    var allMeshes = meshes.concat(rsMeshArr);
+    var hits = raycaster.intersectObjects(allMeshes, false);
+    targetIsRedstone = false;
+    if (hits.length > 0) {
+      var hit = hits[0];
+      // Check if this is a redstone mesh
+      var rsKey = null;
+      for (var rk2 in redstoneMeshes) {
+        var found = false;
+        redstoneMeshes[rk2].traverse(function(c) { if (c === hit.object) found = true; });
+        if (found) { rsKey = rk2; break; }
       }
-      // Number keys
-      var slotIdx = -1;
-      if (e.code === 'Digit1') slotIdx = 0;
-      else if (e.code === 'Digit2') slotIdx = 1;
-      else if (e.code === 'Digit3') slotIdx = 2;
-      else if (e.code === 'Digit4') slotIdx = 3;
-      else if (e.code === 'Digit5') slotIdx = 4;
-      else if (e.code === 'Digit6') slotIdx = 5;
-      else if (e.code === 'Digit7') slotIdx = 6;
-      else if (e.code === 'Digit8') slotIdx = 7;
-      else if (e.code === 'Digit9') slotIdx = 8;
-      else if (e.code === 'Digit0') slotIdx = 9;
-      if (slotIdx >= 0) {
-        if (heldBlock) {
-          // Place held block into this slot
-          hotbarSlots[slotIdx] = heldBlock;
-          heldBlock = null;
-          selectedSlot = slotIdx;
-          updateHotbar();
-          updateHeld();
-        } else {
-          // Just select the slot
-          selectedSlot = slotIdx;
-          updateHotbar();
-        }
-      }
-    });
-    document.addEventListener('keyup', function(e) { keys[e.code] = false; });
-    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.addEventListener('mousedown', function(e) {
-      if (!locked || menuOpen || !targetBlock) return;
-      if (e.button === 0) {
-        destroyBlock(targetBlock.x, targetBlock.y, targetBlock.z);
-      } else if (e.button === 2 && targetNormal) {
-        var nx = 0, ny = 0, nz = 0;
-        if (Math.abs(targetNormal.x) > 0.5) nx = Math.sign(targetNormal.x);
-        if (Math.abs(targetNormal.y) > 0.5) ny = Math.sign(targetNormal.y);
-        if (Math.abs(targetNormal.z) > 0.5) nz = Math.sign(targetNormal.z);
-        placeBlock(targetBlock.x + nx, targetBlock.y + ny, targetBlock.z + nz);
-      }
-    });
-    window.addEventListener('resize', function() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    function updateChunks() {
-      var pcx = Math.floor(playerPos.x / CHUNK_SIZE);
-      var pcz = Math.floor(playerPos.z / CHUNK_SIZE);
-      var chunkRadius = Math.ceil(RENDER_DISTANCE / CHUNK_SIZE);
-      var needed = {};
-      for (var dx = -chunkRadius; dx <= chunkRadius; dx++) {
-        for (var dz = -chunkRadius; dz <= chunkRadius; dz++) {
-          var cx = pcx + dx, cz = pcz + dz;
-          var worldCX = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
-          var worldCZ = cz * CHUNK_SIZE + CHUNK_SIZE / 2;
-          var dist = Math.sqrt((worldCX - playerPos.x) * (worldCX - playerPos.x) + (worldCZ - playerPos.z) * (worldCZ - playerPos.z));
-          if (dist <= RENDER_DISTANCE) {
-            var key = chunkKey(cx, cz);
-            needed[key] = true;
-            if (!chunks[key]) createChunk(cx, cz);
-            if (!cloudChunks['c' + key]) createCloudChunk(cx, cz);
-          }
-        }
-      }
-      for (var key in chunks) { if (!needed[key]) removeChunk(key); }
-      for (var key in cloudChunks) { if (!needed[key.substring(1)]) removeCloudChunk(key); }
-    }
-
-    function updateTarget() {
-      raycaster.setFromCamera(screenCenter, camera);
-      var meshes = [];
-      for (var key in chunks) {
-        var meshList = chunks[key].meshes;
-        for (var mi = 0; mi < meshList.length; mi++) {
-          meshes.push(meshList[mi].cubeMesh);
-        }
-      }
-      var hits = raycaster.intersectObjects(meshes);
-      if (hits.length > 0) {
-        var hit = hits[0];
-        var ck = hit.object.userData.chunkKey;
-        var offset = hit.object.userData.instanceOffset || 0;
-        var pos = chunks[ck].positions[offset + hit.instanceId];
+      if (rsKey) {
+        var p2 = rsKey.split(',');
+        targetBlock = { x: +p2[0], y: +p2[1], z: +p2[2] };
+        targetNormal = hit.face.normal;
+        targetIsRedstone = true;
+      } else if (hit.object.isInstancedMesh) {
+        var ck2 = hit.object.userData.ck;
+        var off = hit.object.userData.off || 0;
+        var pos = chunks[ck2].positions[off + hit.instanceId];
         targetBlock = { x: pos[0], y: pos[1], z: pos[2] };
         targetNormal = hit.face.normal;
-        highlightMesh.position.set(pos[0], pos[1], pos[2]);
-        highlightMesh.visible = true;
       } else {
-        targetBlock = null;
-        targetNormal = null;
-        highlightMesh.visible = false;
+        targetBlock = null; targetNormal = null;
       }
-    }
+      if (targetBlock) { highlightMesh.position.set(targetBlock.x, targetBlock.y, targetBlock.z); highlightMesh.visible = true; }
+    } else { targetBlock = null; targetNormal = null; highlightMesh.visible = false; }
+  }
 
-    var lastTime = performance.now();
-    function animate() {
-      requestAnimationFrame(animate);
-      if (menuOpen) { renderer.render(scene, camera); return; }
-      var now = performance.now();
-      var dt = (now - lastTime) / 1000;
-      if (dt > 0.1) dt = 0.1;
-      lastTime = now;
-      var forward = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), 0, -Math.cos(yaw) * Math.cos(pitch)).normalize();
-      var right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
-      var moveDir = new THREE.Vector3();
-      if (keys['KeyW']) moveDir.add(forward);
-      if (keys['KeyS']) moveDir.sub(forward);
-      if (keys['KeyA']) moveDir.sub(right);
-      if (keys['KeyD']) moveDir.add(right);
-      if (keys['ShiftLeft'] || keys['ShiftRight']) { MOVE_SPEED = BASE_SPEED / 0.6; } else { MOVE_SPEED = BASE_SPEED; }
-      if (moveDir.lengthSq() > 0) {
-        moveDir.normalize();
-        var totalDx = moveDir.x * MOVE_SPEED * dt;
-        var totalDz = moveDir.z * MOVE_SPEED * dt;
-        var steps = Math.max(1, Math.ceil(Math.abs(totalDx) / 0.4), Math.ceil(Math.abs(totalDz) / 0.4));
-        var stepDx = totalDx / steps;
-        var stepDz = totalDz / steps;
-        for (var si = 0; si < steps; si++) {
-          var moved = false;
-          if (!collidesAt(playerPos.x + stepDx, playerPos.y, playerPos.z)) { playerPos.x += stepDx; moved = true; }
-          if (!collidesAt(playerPos.x, playerPos.y, playerPos.z + stepDz)) { playerPos.z += stepDz; moved = true; }
-          if (!moved) break;
-        }
-      }
-      if (keys['Space'] && onGround) { velocity.y = JUMP_FORCE; onGround = false; }
-      velocity.y -= GRAVITY * dt;
-      var totalDy = velocity.y * dt;
-      var vSteps = Math.max(1, Math.ceil(Math.abs(totalDy) / 0.4));
-      var stepDy = totalDy / vSteps;
-      for (var vi = 0; vi < vSteps; vi++) {
-        var testY = playerPos.y + stepDy;
-        if (collidesAt(playerPos.x, testY, playerPos.z)) {
-          if (velocity.y <= 0) {
-            var feetY = testY - PLAYER_EYE_TO_FEET;
-            var blockTopY = Math.floor(feetY + 0.5) + 0.5;
-            playerPos.y = blockTopY + PLAYER_EYE_TO_FEET;
-          }
-          velocity.y = 0;
-          onGround = true;
-          break;
-        }
-        playerPos.y = testY;
-        onGround = false;
-      }
-      if (playerPos.y < -5) { playerPos.y = findGroundBelow(playerPos.x, playerPos.y, playerPos.z); velocity.y = 0; }
-      camera.position.copy(playerPos);
-      camera.rotation.order = 'YXZ';
-      camera.rotation.y = yaw;
-      camera.rotation.x = pitch;
-      updateChunks();
-      updateTarget();
-      renderer.render(scene, camera);
+  // ===== GAME LOOP =====
+  var lastTime = performance.now();
+  function animate() {
+    requestAnimationFrame(animate);
+    if (menuOpen) { renderer.render(scene, camera); return; }
+    var now = performance.now(), dt = (now - lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1; lastTime = now;
+    // Tick system
+    tickAccum += dt;
+    while (tickAccum >= TICK_RATE) { tickAccum -= TICK_RATE; currentTick++; processTickQueue(); }
+    // Movement
+    var fwd = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), 0, -Math.cos(yaw) * Math.cos(pitch)).normalize();
+    var rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)).normalize();
+    var md = new THREE.Vector3();
+    if (keys['KeyW']) md.add(fwd); if (keys['KeyS']) md.sub(fwd);
+    if (keys['KeyA']) md.sub(rgt); if (keys['KeyD']) md.add(rgt);
+    if (keys['ShiftLeft'] || keys['ShiftRight']) MOVE_SPEED = BASE_SPEED / 0.6; else MOVE_SPEED = BASE_SPEED;
+    if (md.lengthSq() > 0) {
+      md.normalize();
+      var tdx = md.x * MOVE_SPEED * dt, tdz = md.z * MOVE_SPEED * dt;
+      var steps = Math.max(1, Math.ceil(Math.abs(tdx) / 0.4), Math.ceil(Math.abs(tdz) / 0.4));
+      var sdx = tdx / steps, sdz = tdz / steps;
+      for (var si = 0; si < steps; si++) { var mv = false; if (!collidesAt(playerPos.x + sdx, playerPos.y, playerPos.z)) { playerPos.x += sdx; mv = true; } if (!collidesAt(playerPos.x, playerPos.y, playerPos.z + sdz)) { playerPos.z += sdz; mv = true; } if (!mv) break; }
     }
-    animate();
-  })();
+    if (keys['Space'] && onGround) { velocity.y = JUMP_FORCE; onGround = false; }
+    velocity.y -= GRAVITY * dt;
+    var tdy = velocity.y * dt, vs = Math.max(1, Math.ceil(Math.abs(tdy) / 0.4)), sdy = tdy / vs;
+    for (var vi = 0; vi < vs; vi++) {
+      var ty = playerPos.y + sdy;
+      if (collidesAt(playerPos.x, ty, playerPos.z)) {
+        if (velocity.y <= 0) { var fy = ty - PEF; playerPos.y = Math.floor(fy + 0.5) + 0.5 + PEF; }
+        velocity.y = 0; onGround = true; break;
+      }
+      playerPos.y = ty; onGround = false;
+    }
+    if (playerPos.y < -5) { playerPos.y = findGround(playerPos.x, playerPos.y, playerPos.z); velocity.y = 0; }
+    camera.position.copy(playerPos);
+    camera.rotation.order = 'YXZ'; camera.rotation.y = yaw; camera.rotation.x = pitch;
+    updateChunks(); updateTarget(); renderer.render(scene, camera);
+  }
+  animate();
+})();
   </script>
 </body>
 </html>

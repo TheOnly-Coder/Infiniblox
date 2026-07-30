@@ -49,8 +49,21 @@
     var chunks = {};
     var cloudChunks = {};
     var CLOUD_HEIGHT = 50;
-    var CLOUD_SPACING = 6;
+    var CLOUD_SPACING = 8;
     var cloudMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+
+    var CLOUD_FORMATIONS = [
+      [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1]],
+      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[1,0,1],[2,0,1],[1,1,1],[2,1,1]],
+      [[0,0,0],[1,0,0],[2,0,0],[0,0,1],[2,0,1],[0,0,2],[1,0,2],[2,0,2]],
+      [[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[1,0,2],[2,0,2],[3,0,2]],
+      [[0,0,0],[1,0,0],[2,0,0],[0,1,0],[1,1,0],[2,1,0],[1,1,1]],
+      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[5,0,0],[1,0,1],[2,0,1],[3,0,1],[4,0,1],[2,0,2],[3,0,2]],
+      [[0,0,0],[1,0,0],[0,0,1],[1,0,1],[0,1,0],[1,1,0]],
+      [[1,0,0],[2,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[1,1,1],[2,1,1]],
+      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[0,0,1],[1,0,1],[2,0,1],[3,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[1,1,0],[2,1,0],[1,1,1],[2,1,1],[1,1,2],[2,1,2]],
+      [[0,0,0],[1,0,0],[2,0,0],[3,0,0],[4,0,0],[0,0,1],[4,0,1],[0,0,2],[1,0,2],[2,0,2],[3,0,2],[4,0,2]],
+    ];
 
     function hash(x, z) {
       var n = x * 374761393 + z * 668265263;
@@ -143,19 +156,11 @@
         for (var gz = 0; gz < CHUNK_SIZE; gz += CLOUD_SPACING) {
           var wx = startWX + gx;
           var wz = startWZ + gz;
-          var h = hash(wx, wz);
-          if (h > 0.4) {
-            var size = 2 + Math.floor(hash(wx + 100, wz + 100) * 4);
-            var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 3);
-            for (var dx = 0; dx < size; dx++) {
-              for (var dz = 0; dz < size; dz++) {
-                if (hash(wx + dx * 7, wz + dz * 13) > 0.35) {
-                  positions.push(wx + dx, cy, wz + dz);
-                  if (hash(wx + dx * 11, wz + dz * 17) > 0.6) {
-                    positions.push(wx + dx, cy + 1, wz + dz);
-                  }
-                }
-              }
+          if (hash(wx, wz) > 0.35) {
+            var formation = CLOUD_FORMATIONS[Math.floor(hash(wx + 500, wz + 500) * CLOUD_FORMATIONS.length)];
+            var cy = CLOUD_HEIGHT + Math.floor(hash(wx + 200, wz + 200) * 5);
+            for (var b = 0; b < formation.length; b++) {
+              positions.push(wx + formation[b][0], cy + formation[b][1], wz + formation[b][2]);
             }
           }
         }

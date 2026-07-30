@@ -73,6 +73,20 @@
     var GRAVITY = 20;
     var MOUSE_SENSITIVITY = 0.002;
     var REACH = 7;
+    var TERRAIN_DEPTH = 6; // layers 0-5, surface at y=5
+    var SURFACE_Y = TERRAIN_DEPTH - 1; // y=5
+
+    // Layer config: y=0 (bottom, darkest/unbreakable) -> y=5 (surface, white)
+    var LAYER_COLORS = {
+      0: { fill: 0x666666, edge: 0x444444 }, // dark grey - unbreakable bedrock
+      1: { fill: 0x556b2f, edge: 0x3d4f22 }, // green
+      2: { fill: 0x8b6914, edge: 0x6b5010 }, // brown dark
+      3: { fill: 0xa0782c, edge: 0x7a5c20 }, // brown light
+      4: { fill: 0xbbbbbb, edge: 0x999999 }, // lighter grey
+      5: { fill: 0xdddddd, edge: 0xaaaaaa }, // lightest grey (not quite white)
+    };
+    var PLACED_FILL = 0xffffff;
+    var PLACED_EDGE = 0xbbbbbb;
 
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -82,8 +96,17 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-    var edgeMaterial = new THREE.LineBasicMaterial({ color: 0xbbbbbb });
+    // Build per-layer materials
+    var layerFillMaterials = {};
+    var layerEdgeMaterials = {};
+    for (var ly = 0; ly < TERRAIN_DEPTH; ly++) {
+      layerFillMaterials[ly] = new THREE.MeshBasicMaterial({ color: LAYER_COLORS[ly].fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+      layerEdgeMaterials[ly] = new THREE.LineBasicMaterial({ color: LAYER_COLORS[ly].edge });
+    }
+    // Material for player-placed blocks
+    var placedFillMaterial = new THREE.MeshBasicMaterial({ color: PLACED_FILL, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    var placedEdgeMaterial = new THREE.LineBasicMaterial({ color: PLACED_EDGE });
+
     var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
     var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);
 
@@ -100,7 +123,7 @@
     var targetBlock = null;
     var targetNormal = null;
 
-    // Block world data
+    // Block world data: key -> { layer: number } where layer is -1 for placed blocks
     var worldBlocks = {};
     var chunkBlockSet = {};
     var chunks = {};
@@ -116,9 +139,11 @@
       for (var lx = 0; lx < CHUNK_SIZE; lx++) {
         for (var lz = 0; lz < CHUNK_SIZE; lz++) {
           var wx = cx * CHUNK_SIZE + lx, wz = cz * CHUNK_SIZE + lz;
-          var key = bk(wx, 0, wz);
-          worldBlocks[key] = true;
-          chunkBlockSet[ck][key] = true;
+          for (var dy = 0; dy < TERRAIN_DEPTH; dy++) {
+            var key = bk(wx, dy, wz);
+            worldBlocks[key] = { layer: dy };
+            chunkBlockSet[ck][key] = true;
+          }
         }
       }
     }
@@ -126,39 +151,73 @@
     function rebuildChunkMesh(cx, cz) {
       var ck = chunkKey(cx, cz);
       if (chunks[ck]) {
-        scene.remove(chunks[ck].cubeMesh);
-        scene.remove(chunks[ck].edgeMesh);
-        chunks[ck].cubeMesh.dispose();
-        chunks[ck].edgeMesh.dispose();
+        for (var li = 0; li < chunks[ck].meshes.length; li++) {
+          scene.remove(chunks[ck].meshes[li].cubeMesh);
+          scene.remove(chunks[ck].meshes[li].edgeMesh);
+          chunks[ck].meshes[li].cubeMesh.dispose();
+          chunks[ck].meshes[li].edgeMesh.dispose();
+        }
         delete chunks[ck];
       }
       var blockSet = chunkBlockSet[ck];
       if (!blockSet) return;
       var blockKeys = Object.keys(blockSet);
       if (blockKeys.length === 0) return;
-      var cubeMesh = new THREE.InstancedMesh(blockGeometry, cubeMaterial, blockKeys.length);
-      var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMaterial, blockKeys.length);
-      var positions = [];
-      var mat = new THREE.Matrix4();
+
+      // Group blocks by their visual material bucket (terrain layer or placed)
+      var buckets = {}; // bucketKey -> [{x,y,z}, ...]
       for (var i = 0; i < blockKeys.length; i++) {
         var p = blockKeys[i].split(',');
         var bx = parseInt(p[0]), by = parseInt(p[1]), bz = parseInt(p[2]);
-        positions.push([bx, by, bz]);
-        mat.setPosition(bx, by, bz);
-        cubeMesh.setMatrixAt(i, mat);
-        edgeMesh.setMatrixAt(i, mat);
+        var blockData = worldBlocks[blockKeys[i]];
+        var bucketKey = 'L' + blockData.layer; // L0..L5, L-1 for placed
+        if (!buckets[bucketKey]) buckets[bucketKey] = [];
+        buckets[bucketKey].push([bx, by, bz]);
       }
-      cubeMesh.instanceMatrix.needsUpdate = true;
-      edgeMesh.instanceMatrix.needsUpdate = true;
-      cubeMesh.userData.chunkKey = ck;
-      scene.add(cubeMesh);
-      scene.add(edgeMesh);
-      chunks[ck] = { cubeMesh: cubeMesh, edgeMesh: edgeMesh, positions: positions };
+
+      var allMeshes = [];
+      var allPositions = []; // flat array of all [x,y,z] for raycasting
+      var instanceOffset = 0; // track instanceId offsets per bucket for raycasting
+
+      var bucketKeys = Object.keys(buckets).sort();
+      for (var bi = 0; bi < bucketKeys.length; bi++) {
+        var bkey = bucketKeys[bi];
+        var bPositions = buckets[bkey];
+        var layerNum = parseInt(bkey.substring(1));
+        var fillMat, edgeMat;
+        if (layerNum >= 0 && layerNum < TERRAIN_DEPTH) {
+          fillMat = layerFillMaterials[layerNum];
+          edgeMat = layerEdgeMaterials[layerNum];
+        } else {
+          fillMat = placedFillMaterial;
+          edgeMat = placedEdgeMaterial;
+        }
+        var cubeMesh = new THREE.InstancedMesh(blockGeometry, fillMat, bPositions.length);
+        var edgeMesh = new THREE.InstancedMesh(edgeGeometry, edgeMat, bPositions.length);
+        var mat4 = new THREE.Matrix4();
+        for (var j = 0; j < bPositions.length; j++) {
+          mat4.setPosition(bPositions[j][0], bPositions[j][1], bPositions[j][2]);
+          cubeMesh.setMatrixAt(j, mat4);
+          edgeMesh.setMatrixAt(j, mat4);
+          allPositions.push(bPositions[j]);
+        }
+        cubeMesh.instanceMatrix.needsUpdate = true;
+        edgeMesh.instanceMatrix.needsUpdate = true;
+        cubeMesh.userData.chunkKey = ck;
+        cubeMesh.userData.instanceOffset = instanceOffset;
+        scene.add(cubeMesh);
+        scene.add(edgeMesh);
+        allMeshes.push({ cubeMesh: cubeMesh, edgeMesh: edgeMesh, startIdx: instanceOffset });
+        instanceOffset += bPositions.length;
+      }
+      chunks[ck] = { meshes: allMeshes, positions: allPositions };
     }
 
     function destroyBlock(x, y, z) {
       var key = bk(x, y, z);
       if (!worldBlocks[key]) return;
+      // Layer 0 is unbreakable
+      if (worldBlocks[key].layer === 0) return;
       delete worldBlocks[key];
       var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
       if (chunkBlockSet[ck]) delete chunkBlockSet[ck][key];
@@ -169,7 +228,7 @@
       var key = bk(x, y, z);
       if (worldBlocks[key]) return;
       if (Math.abs(x - playerPos.x) < 0.8 && Math.abs(z - playerPos.z) < 0.8 && y - 0.5 < playerPos.y + 0.2 && y + 0.5 > playerPos.y - PLAYER_HEIGHT) return;
-      worldBlocks[key] = true;
+      worldBlocks[key] = { layer: -1 }; // -1 = placed block
       var ck = chunkKey(Math.floor(x / CHUNK_SIZE), Math.floor(z / CHUNK_SIZE));
       if (!chunkBlockSet[ck]) chunkBlockSet[ck] = {};
       chunkBlockSet[ck][key] = true;
@@ -185,10 +244,12 @@
 
     function removeChunk(key) {
       if (!chunks[key]) return;
-      scene.remove(chunks[key].cubeMesh);
-      scene.remove(chunks[key].edgeMesh);
-      chunks[key].cubeMesh.dispose();
-      chunks[key].edgeMesh.dispose();
+      for (var li = 0; li < chunks[key].meshes.length; li++) {
+        scene.remove(chunks[key].meshes[li].cubeMesh);
+        scene.remove(chunks[key].meshes[li].edgeMesh);
+        chunks[key].meshes[li].cubeMesh.dispose();
+        chunks[key].meshes[li].edgeMesh.dispose();
+      }
       delete chunks[key];
     }
 
@@ -254,10 +315,55 @@
       delete cloudChunks[key];
     }
 
+    // --- Collision ---
+    function isBlockAt(x, y, z) {
+      // Check integer coords around the given position
+      var bx = Math.floor(x + 0.5);
+      var by = Math.floor(y + 0.5);
+      var bz = Math.floor(z + 0.5);
+      return !!worldBlocks[bk(bx, by, bz)];
+    }
+
+    function isSolidBlock(bx, by, bz) {
+      return !!worldBlocks[bk(bx, by, bz)];
+    }
+
+    // AABB collision: player is a box of half-width 0.3, height PLAYER_HEIGHT
+    // playerPos.y is at eye level; feet at playerPos.y - PLAYER_HEIGHT, head at playerPos.y + 0.1
+    var PLAYER_HALF_W = 0.3;
+    var PLAYER_EYE_TO_FEET = PLAYER_HEIGHT; // distance from eye to feet
+    var PLAYER_EYE_TO_HEAD = 0.1;
+
+    function collidesAt(px, py, pz) {
+      // Player AABB: x in [px-0.3, px+0.3], z in [pz-0.3, pz+0.3]
+      // y from (py - PLAYER_EYE_TO_FEET) to (py + PLAYER_EYE_TO_HEAD)
+      var minX = Math.floor(px - PLAYER_HALF_W);
+      var maxX = Math.floor(px + PLAYER_HALF_W);
+      var minZ = Math.floor(pz - PLAYER_HALF_W);
+      var maxZ = Math.floor(pz + PLAYER_HALF_W);
+      var minY = Math.floor(py - PLAYER_EYE_TO_FEET);
+      var maxY = Math.floor(py + PLAYER_EYE_TO_HEAD);
+      for (var bx = minX; bx <= maxX; bx++) {
+        for (var bz = minZ; bz <= maxZ; bz++) {
+          for (var by = minY; by <= maxY; by++) {
+            if (isSolidBlock(bx, by, bz)) {
+              // AABB overlap check
+              if (px + PLAYER_HALF_W > bx - 0.5 && px - PLAYER_HALF_W < bx + 0.5 &&
+                  py + PLAYER_EYE_TO_HEAD > by - 0.5 && py - PLAYER_EYE_TO_FEET < by + 0.5 &&
+                  pz + PLAYER_HALF_W > bz - 0.5 && pz - PLAYER_HALF_W < bz + 0.5) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     // Controls
     var keys = {};
     var pitch = 0, yaw = 0, locked = false;
-    var playerPos = new THREE.Vector3(0, PLAYER_HEIGHT, 0);
+    var playerPos = new THREE.Vector3(0, SURFACE_Y + PLAYER_HEIGHT, 0);
     var velocity = new THREE.Vector3(0, 0, 0);
     var onGround = true;
     var overlay = document.getElementById('overlay');
@@ -333,12 +439,18 @@
     function updateTarget() {
       raycaster.setFromCamera(screenCenter, camera);
       var meshes = [];
-      for (var key in chunks) meshes.push(chunks[key].cubeMesh);
+      for (var key in chunks) {
+        var meshList = chunks[key].meshes;
+        for (var mi = 0; mi < meshList.length; mi++) {
+          meshes.push(meshList[mi].cubeMesh);
+        }
+      }
       var hits = raycaster.intersectObjects(meshes);
       if (hits.length > 0) {
         var hit = hits[0];
         var ck = hit.object.userData.chunkKey;
-        var pos = chunks[ck].positions[hit.instanceId];
+        var offset = hit.object.userData.instanceOffset || 0;
+        var pos = chunks[ck].positions[offset + hit.instanceId];
         targetBlock = { x: pos[0], y: pos[1], z: pos[2] };
         targetNormal = hit.face.normal;
         highlightMesh.position.set(pos[0], pos[1], pos[2]);
@@ -370,16 +482,50 @@
 
       if (keys['ShiftLeft'] || keys['ShiftRight']) { MOVE_SPEED = BASE_SPEED / 0.6; } else { MOVE_SPEED = BASE_SPEED; }
 
+      // Horizontal movement with collision
       if (moveDir.lengthSq() > 0) {
         moveDir.normalize();
-        playerPos.x += moveDir.x * MOVE_SPEED * dt;
-        playerPos.z += moveDir.z * MOVE_SPEED * dt;
+        var dx = moveDir.x * MOVE_SPEED * dt;
+        var dz = moveDir.z * MOVE_SPEED * dt;
+
+        // Try X movement
+        if (!collidesAt(playerPos.x + dx, playerPos.y, playerPos.z)) {
+          playerPos.x += dx;
+        }
+        // Try Z movement
+        if (!collidesAt(playerPos.x, playerPos.y, playerPos.z + dz)) {
+          playerPos.z += dz;
+        }
       }
 
+      // Jump
       if (keys['Space'] && onGround) { velocity.y = JUMP_FORCE; onGround = false; }
+
+      // Gravity
       velocity.y -= GRAVITY * dt;
-      playerPos.y += velocity.y * dt;
-      if (playerPos.y <= PLAYER_HEIGHT) { playerPos.y = PLAYER_HEIGHT; velocity.y = 0; onGround = true; }
+      var newY = playerPos.y + velocity.y * dt;
+
+      // Vertical collision
+      if (velocity.y <= 0) {
+        // Falling or standing: check feet
+        if (collidesAt(playerPos.x, newY, playerPos.z)) {
+          // Snap feet to top of block
+          var feetY = newY - PLAYER_EYE_TO_FEET;
+          var blockTopY = Math.floor(feetY + 0.5) + 0.5;
+          newY = blockTopY + PLAYER_EYE_TO_FEET;
+          velocity.y = 0;
+          onGround = true;
+        } else {
+          onGround = false;
+        }
+      } else {
+        // Rising: check head
+        if (collidesAt(playerPos.x, newY, playerPos.z)) {
+          velocity.y = 0;
+        }
+      }
+
+      playerPos.y = newY;
 
       camera.position.copy(playerPos);
       camera.rotation.order = 'YXZ';

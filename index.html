@@ -40,7 +40,7 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
     var edgeMaterial = new THREE.LineBasicMaterial({ color: 0xbbbbbb });
     var blockGeometry = new THREE.BoxGeometry(1, 1, 1);
     var edgeGeometry = new THREE.EdgesGeometry(blockGeometry);

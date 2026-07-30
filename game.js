@@ -36,15 +36,16 @@ let onGround = true;
 
 const overlay = document.getElementById('overlay');
 
-overlay.addEventListener('click', () => {
-  overlay.style.display = 'none';
-  document.body.requestPointerLock();
+renderer.domElement.addEventListener('click', () => {
+  renderer.domElement.requestPointerLock();
 });
 
 document.addEventListener('pointerlockchange', () => {
-  locked = !!document.pointerLockElement;
-  if (!locked) {
-    overlay.style.display = 'flex';
+  locked = document.pointerLockElement === renderer.domElement;
+  if (locked) {
+    overlay.classList.add('hidden');
+  } else {
+    overlay.classList.remove('hidden');
   }
 });
 
